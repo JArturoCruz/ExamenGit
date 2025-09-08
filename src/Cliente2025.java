@@ -7,13 +7,33 @@ import java.net.Socket;
 public class Cliente2025 {
     public static void main(String[] args) {
         try {
-            Socket salida = new Socket("localhost", 8081);
-            PrintWriter escritor = new PrintWriter(salida.getOutputStream(), true);
-            BufferedReader lector = new BufferedReader(new InputStreamReader(salida.getInputStream()));
+            Socket socket = new Socket("localhost", 8081);
+            PrintWriter escritor = new PrintWriter(socket.getOutputStream(), true);
+            BufferedReader lector = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             BufferedReader teclado = new BufferedReader(new InputStreamReader(System.in));
 
+            System.out.println(lector.readLine()); // ¿Deseas [1] Iniciar sesión o [2] Registrarte?
+            String opcion = teclado.readLine();
+            escritor.println(opcion);
+
+            System.out.print(lector.readLine()); // Usuario:
+            String usuario = teclado.readLine();
+            escritor.println(usuario);
+
+            System.out.print(lector.readLine()); // Contraseña:
+            String contrasena = teclado.readLine();
+            escritor.println(contrasena);
+
+            String respuesta = lector.readLine();
+            System.out.println("Servidor: " + respuesta);
+
+            if (!respuesta.contains("Autenticación exitosa") && !respuesta.contains("registrado")) {
+                System.out.println("No puedes continuar sin iniciar sesión.");
+                socket.close();
+                return;
+            }
+
             int intentos = 0;
-            String respuesta;
 
             while (intentos < 3) {
                 System.out.print("Adivina el número (1-10): ");
@@ -21,6 +41,7 @@ public class Cliente2025 {
                 escritor.println(entrada);
 
                 respuesta = lector.readLine();
+                if (respuesta == null) break;
                 System.out.println("Servidor: " + respuesta);
 
                 boolean entradaInvalida = respuesta.contains("Entrada inválida")
@@ -28,18 +49,14 @@ public class Cliente2025 {
                 if (!entradaInvalida) {
                     intentos++;
                 }
-
                 if (respuesta.contains("Felicidades") || respuesta.contains("Se acabaron")) {
                     break;
                 }
             }
 
-            salida.close();
-
+            socket.close();
         } catch (IOException e) {
             System.out.println("Ocurrió un error en cliente: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 }
- 
