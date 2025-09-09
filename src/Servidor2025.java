@@ -6,6 +6,7 @@ import java.util.*;
 public class Servidor2025 {
 
     private static final String ARCHIVO_USUARIOS = "usuarios.txt";
+    private static final String ARCHIVO_MENSAJES = "mensajes.txt"; // Nuevo archivo para mensajes
 
     public static void main(String[] args) {
         try {
@@ -14,7 +15,7 @@ public class Servidor2025 {
 
             while (true) {
                 Socket cliente = serverSocket.accept();
-                System.out.println("Cliente conectado.");
+                System.out.println("Cliente conectado: " + cliente.getInetAddress());
 
                 new Thread(() -> manejarCliente(cliente)).start();
             }
@@ -25,117 +26,248 @@ public class Servidor2025 {
     }
 
     private static void manejarCliente(Socket cliente) {
-        try {
-            PrintWriter escritor = new PrintWriter(cliente.getOutputStream(), true);
-            BufferedReader lector = new BufferedReader(new InputStreamReader(cliente.getInputStream()));
-
-            escritor.println("¿Deseas [1] Iniciar sesión o [2] Registrarte?");
+        try (
+                PrintWriter escritor = new PrintWriter(cliente.getOutputStream(), true);
+                BufferedReader lector = new BufferedReader(new InputStreamReader(cliente.getInputStream()))
+        ) {
+            escritor.println("Bienvenido. ¿Deseas [1] Iniciar sesión, [2] Registrarte o [3] Ver usuarios registrados?");
             String opcion = lector.readLine();
+
+            String usuarioAutenticado = null; // Guardará el nombre del usuario que inició sesión
+
+            if ("3".equals(opcion)) {
+                mostrarUsuariosRegistrados(escritor);
+                cliente.close();
+                return;
+            }
 
             escritor.println("Usuario:");
             String usuario = lector.readLine();
             escritor.println("Contraseña:");
             String contrasena = lector.readLine();
 
-            boolean autenticado = false;
-
-            synchronized (Servidor2025.class) {
-                if ("1".equals(opcion)) {
-                    autenticado = verificarCredenciales(usuario, contrasena);
-                    escritor.println(autenticado ? "Autenticación exitosa" : "Credenciales inválidas");
-                } else if ("2".equals(opcion)) {
-                    if (registrarUsuario(usuario, contrasena)) {
-                        escritor.println("Usuario registrado exitosamente");
-                        autenticado = true;
-                    } else {
-                        escritor.println("El usuario ya existe");
-                    }
+            if ("1".equals(opcion)) {
+                if (verificarCredenciales(usuario, contrasena)) {
+                    escritor.println("Autenticación exitosa");
+                    usuarioAutenticado = usuario; // Guardamos el usuario
                 } else {
-                    escritor.println("Opción no válida");
+                    escritor.println("Credenciales inválidas");
                 }
+            } else if ("2".equals(opcion)) {
+                if (registrarUsuario(usuario, contrasena)) {
+                    escritor.println("Usuario registrado exitosamente");
+                    usuarioAutenticado = usuario; // Autenticamos después de registrar
+                } else {
+                    escritor.println("El usuario ya existe");
+                }
+            } else {
+                escritor.println("Opción no válida");
             }
 
-            if (!autenticado) {
+            // Si el usuario no fue autenticado, se cierra la conexión
+            if (usuarioAutenticado == null) {
                 cliente.close();
                 return;
             }
 
-            // Juego
-            Random random = new Random();
-            int numeroSecreto = random.nextInt(10) + 1;
-            int intentos = 0;
-            boolean adivinado = false;
-            String entrada;
-
-            while (intentos < 3 && (entrada = lector.readLine()) != null) {
-                int intentoCliente;
-                try {
-                    intentoCliente = Integer.parseInt(entrada);
-                    if (intentoCliente < 1 || intentoCliente > 10) {
-                        escritor.println("Número fuera de rango. Ingresa un número entre 1 y 10.");
-                        continue;
-                    }
-                    intentos++;
-                    if (intentoCliente == numeroSecreto) {
-                        escritor.println("¡Felicidades! Has adivinado el número.");
-                        adivinado = true;
+            // ---- NUEVO: MENÚ DE OPCIONES DESPUÉS DE INICIAR SESIÓN ----
+            String opcionMenu;
+            while ((opcionMenu = lector.readLine()) != null) {
+                switch (opcionMenu) {
+                    case "1":
+                        jugarAdivinarNumero(lector, escritor);
                         break;
-                    } else if (intentoCliente < numeroSecreto) {
-                        escritor.println("El número es mayor.");
-                    } else {
-                        escritor.println("El número es menor.");
-                    }
-                } catch (NumberFormatException e) {
-                    escritor.println("Entrada inválida. Por favor, ingresa un número entre 1 y 10.");
+                    case "2":
+                        enviarMensaje(usuarioAutenticado, lector, escritor);
+                        break;
+                    case "3":
+                        leerMensajes(usuarioAutenticado, escritor);
+                        break;
+                    case "4":
+                        System.out.println("Cliente " + usuarioAutenticado + " ha cerrado sesión.");
+                        cliente.close();
+                        return; // Salir del método y del hilo
+                    default:
+                        escritor.println("Opción de menú no válida.");
+                        break;
                 }
             }
 
-            if (!adivinado) {
-                escritor.println("Se acabaron los intentos. El número era: " + numeroSecreto);
-            }
-
-            cliente.close();
         } catch (IOException e) {
             System.out.println("Error con el cliente: " + e.getMessage());
+        } finally {
+            try {
+                if (cliente != null && !cliente.isClosed()) {
+                    cliente.close();
+                }
+            } catch (IOException e) {
+                System.out.println("Error al cerrar el socket del cliente: " + e.getMessage());
+            }
         }
+    }
+
+    // ---- LÓGICA DEL JUEGO MOVIDA A SU PROPIO MÉTODO ----
+    private static void jugarAdivinarNumero(BufferedReader lector, PrintWriter escritor) throws IOException {
+        escritor.println("¡Vamos a jugar! Adivina el número del 1 al 10. Tienes 3 intentos.");
+        Random random = new Random();
+        int numeroSecreto = random.nextInt(10) + 1;
+        int intentos = 0;
+        boolean adivinado = false;
+
+        while (intentos < 3) {
+            String entrada = lector.readLine();
+            if (entrada == null) break; // Cliente se desconectó
+
+            try {
+                int intentoCliente = Integer.parseInt(entrada);
+                intentos++;
+                if (intentoCliente == numeroSecreto) {
+                    escritor.println("¡Felicidades! Has adivinado el número.");
+                    adivinado = true;
+                    break;
+                } else if (intentoCliente < numeroSecreto) {
+                    escritor.println("El número es mayor.");
+                } else {
+                    escritor.println("El número es menor.");
+                }
+            } catch (NumberFormatException e) {
+                escritor.println("Entrada inválida. Ingresa un número.");
+            }
+        }
+
+        if (!adivinado) {
+            escritor.println("Se acabaron los intentos. El número era: " + numeroSecreto);
+        }
+        // Señal para que el cliente sepa que el juego terminó y puede volver a mostrar el menú
+        escritor.println("FIN_JUEGO");
+    }
+
+
+    private static void enviarMensaje(String remitente, BufferedReader lector, PrintWriter escritor) throws IOException {
+        escritor.println("¿Para quién es el mensaje? (nombre de usuario)");
+        String destinatario = lector.readLine();
+        if (destinatario == null) return;
+
+        if (!verificarUsuarioExiste(destinatario)) {
+            escritor.println("Error: El usuario '" + destinatario + "' no existe.");
+            return;
+        }
+
+        escritor.println("Escribe tu mensaje:");
+        String mensaje = lector.readLine();
+        if (mensaje == null) return;
+
+        // Sincronizado para evitar que varios hilos escriban a la vez
+        synchronized (Servidor2025.class) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_MENSAJES, true))) {
+                writer.write(destinatario + ":" + remitente + ":" + mensaje); // Formato: destinatario:remitente:mensaje
+                writer.newLine();
+                escritor.println("Mensaje enviado exitosamente a " + destinatario);
+            } catch (IOException e) {
+                escritor.println("Error al guardar el mensaje.");
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    private static void leerMensajes(String usuario, PrintWriter escritor) {
+        escritor.println("--- Tus mensajes ---");
+        File archivo = new File(ARCHIVO_MENSAJES);
+        if (!archivo.exists()) {
+            escritor.println("No tienes mensajes.");
+        } else {
+            try (BufferedReader reader = new BufferedReader(new FileReader(archivo))) {
+                String linea;
+                int contador = 0;
+                while ((linea = reader.readLine()) != null) {
+                    String[] partes = linea.split(":", 3);
+                    if (partes.length == 3 && partes[0].equals(usuario)) {
+                        escritor.println("De [" + partes[1] + "]: " + partes[2]);
+                        contador++;
+                    }
+                }
+                if (contador == 0) {
+                    escritor.println("No tienes mensajes nuevos.");
+                }
+            } catch (IOException e) {
+                escritor.println("Error al leer los mensajes.");
+            }
+        }
+        escritor.println("--- Fin de los mensajes ---");
+        // Señal para que el cliente sepa que ya no hay más mensajes que leer
+        escritor.println("FIN_MENSAJES");
+    }
+
+    // --- MÉTODOS DE USUARIO EXISTENTES (CON PEQUEÑOS AJUSTES) ---
+
+    private static boolean verificarUsuarioExiste(String usuario) throws IOException {
+        File archivo = new File(ARCHIVO_USUARIOS);
+        if (!archivo.exists()) return false;
+
+        try (BufferedReader lector = new BufferedReader(new FileReader(archivo))) {
+            String linea;
+            while ((linea = lector.readLine()) != null) {
+                String[] partes = linea.split(":");
+                if (partes.length > 0 && partes[0].equals(usuario)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static boolean verificarCredenciales(String usuario, String contrasena) throws IOException {
         File archivo = new File(ARCHIVO_USUARIOS);
         if (!archivo.exists()) return false;
 
-        BufferedReader lector = new BufferedReader(new FileReader(archivo));
-        String linea;
-        while ((linea = lector.readLine()) != null) {
-            String[] partes = linea.split(":");
-            if (partes.length == 2 && partes[0].equals(usuario) && partes[1].equals(contrasena)) {
-                lector.close();
-                return true;
+        try (BufferedReader lector = new BufferedReader(new FileReader(archivo))) {
+            String linea;
+            while ((linea = lector.readLine()) != null) {
+                String[] partes = linea.split(":");
+                if (partes.length == 2 && partes[0].equals(usuario) && partes[1].equals(contrasena)) {
+                    return true;
+                }
             }
         }
-        lector.close();
         return false;
     }
 
     private static boolean registrarUsuario(String usuario, String contrasena) throws IOException {
-        File archivo = new File(ARCHIVO_USUARIOS);
-        if (!archivo.exists()) archivo.createNewFile();
-
-        BufferedReader lector = new BufferedReader(new FileReader(archivo));
-        String linea;
-        while ((linea = lector.readLine()) != null) {
-            String[] partes = linea.split(":");
-            if (partes.length > 0 && partes[0].equals(usuario)) {
-                lector.close();
+        // Sincronizado para evitar condición de carrera al registrar
+        synchronized (Servidor2025.class) {
+            if (verificarUsuarioExiste(usuario)) {
                 return false; // Usuario ya existe
             }
+            try (BufferedWriter escritor = new BufferedWriter(new FileWriter(ARCHIVO_USUARIOS, true))) {
+                escritor.write(usuario + ":" + contrasena);
+                escritor.newLine();
+                return true;
+            }
         }
-        lector.close();
+    }
 
-        BufferedWriter escritor = new BufferedWriter(new FileWriter(archivo, true));
-        escritor.write(usuario + ":" + contrasena);
-        escritor.newLine();
-        escritor.close();
-        return true;
+    private static void mostrarUsuariosRegistrados(PrintWriter escritor) {
+        File archivo = new File(ARCHIVO_USUARIOS);
+        escritor.println("--- Usuarios Registrados ---");
+        if (!archivo.exists()) {
+            escritor.println("No hay usuarios registrados.");
+        } else {
+            try (BufferedReader lector = new BufferedReader(new FileReader(archivo))) {
+                String linea;
+                while ((linea = lector.readLine()) != null) {
+                    String[] partes = linea.split(":");
+                    if (partes.length >= 1) {
+                        escritor.println("- " + partes[0]);
+                    }
+                }
+            } catch (IOException e) {
+                escritor.println("Error al leer usuarios.");
+            }
+        }
+        // Señal para que el cliente sepa que la lista terminó
+        escritor.println("FIN_USUARIOS");
     }
 }
+
+

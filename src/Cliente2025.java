@@ -6,57 +6,115 @@ import java.net.Socket;
 
 public class Cliente2025 {
     public static void main(String[] args) {
-        try {
-            Socket socket = new Socket("localhost", 8081);
-            PrintWriter escritor = new PrintWriter(socket.getOutputStream(), true);
-            BufferedReader lector = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            BufferedReader teclado = new BufferedReader(new InputStreamReader(System.in));
+        try (
+                Socket socket = new Socket("localhost", 8081);
+                PrintWriter escritor = new PrintWriter(socket.getOutputStream(), true);
+                BufferedReader lectorServidor = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                BufferedReader teclado = new BufferedReader(new InputStreamReader(System.in))
+        ) {
+            // --- FASE DE AUTENTICACIÓN ---
+            System.out.println("Servidor: " + lectorServidor.readLine()); // Mensaje de bienvenida
+            String opcionLogin = teclado.readLine();
+            escritor.println(opcionLogin);
 
-            System.out.println(lector.readLine()); // ¿Deseas [1] Iniciar sesión o [2] Registrarte?
-            String opcion = teclado.readLine();
-            escritor.println(opcion);
+            // Si la opción es '3', solo leemos la lista de usuarios
+            if ("3".equals(opcionLogin)) {
+                String linea;
+                while (!(linea = lectorServidor.readLine()).equals("FIN_USUARIOS")) {
+                    System.out.println(linea);
+                }
+                return; // Termina el programa
+            }
 
-            System.out.print(lector.readLine()); // Usuario:
+            System.out.println("Servidor: " + lectorServidor.readLine()); // Pide Usuario
             String usuario = teclado.readLine();
             escritor.println(usuario);
 
-            System.out.print(lector.readLine()); // Contraseña:
+            System.out.println("Servidor: " + lectorServidor.readLine()); // Pide Contraseña
             String contrasena = teclado.readLine();
             escritor.println(contrasena);
 
-            String respuesta = lector.readLine();
-            System.out.println("Servidor: " + respuesta);
+            String respuestaAuth = lectorServidor.readLine();
+            System.out.println("Servidor: " + respuestaAuth);
 
-            if (!respuesta.contains("Autenticación exitosa") && !respuesta.contains("registrado")) {
-                System.out.println("No puedes continuar sin iniciar sesión.");
-                socket.close();
+            // Si la autenticación falla, el programa termina
+            if (!respuestaAuth.contains("Autenticación exitosa") && !respuestaAuth.contains("registrado exitosamente")) {
+                System.out.println("No se pudo iniciar sesión. Adiós.");
                 return;
             }
 
-            int intentos = 0;
+            // ---- NUEVO: BUCLE DE MENÚ PRINCIPAL ----
+            while (true) {
+                mostrarMenu();
+                String opcionMenu = teclado.readLine();
+                escritor.println(opcionMenu);
 
-            while (intentos < 3) {
-                System.out.print("Adivina el número (1-10): ");
-                String entrada = teclado.readLine();
-                escritor.println(entrada);
+                if ("1".equals(opcionMenu)) { // JUGAR
+                    System.out.println(lectorServidor.readLine()); // Lee "¡Vamos a jugar!..."
+                    jugar(lectorServidor, teclado, escritor);
 
-                respuesta = lector.readLine();
-                if (respuesta == null) break;
-                System.out.println("Servidor: " + respuesta);
+                } else if ("2".equals(opcionMenu)) { // ENVIAR MENSAJE
+                    // Lee pregunta de destinatario
+                    System.out.println("Servidor: " + lectorServidor.readLine());
+                    String destinatario = teclado.readLine();
+                    escritor.println(destinatario);
 
-                boolean entradaInvalida = respuesta.contains("Entrada inválida")
-                        || respuesta.contains("Número fuera de rango");
-                if (!entradaInvalida) {
-                    intentos++;
-                }
-                if (respuesta.contains("Felicidades") || respuesta.contains("Se acabaron")) {
-                    break;
+                    // Lee la respuesta del servidor (si pide mensaje o si hay error)
+                    String respuestaDestinatario = lectorServidor.readLine();
+                    System.out.println("Servidor: " + respuestaDestinatario);
+
+                    // Solo si no hubo error, pedimos el mensaje
+                    if (!respuestaDestinatario.startsWith("Error:")) {
+                        String mensaje = teclado.readLine();
+                        escritor.println(mensaje);
+                        // Imprime la confirmación final
+                        System.out.println("Servidor: " + lectorServidor.readLine());
+                    }
+
+                } else if ("3".equals(opcionMenu)) { // LEER MENSAJES
+                    String linea;
+                    // Leemos líneas hasta que el servidor envíe la señal de fin
+                    while (!(linea = lectorServidor.readLine()).equals("FIN_MENSAJES")) {
+                        System.out.println(linea);
+                    }
+
+                } else if ("4".equals(opcionMenu)) { // SALIR
+                    System.out.println("Desconectando del servidor...");
+                    break; // Rompe el bucle while y cierra el programa
+
+                } else {
+                    System.out.println("Opción no válida. Inténtalo de nuevo.");
                 }
             }
 
-            socket.close();
         } catch (IOException e) {
-            System.out.println("Ocurrió un error en cliente: " + e.getMessage());
+            System.out.println("Ocurrió un error en el cliente: " + e.getMessage());
+        }
+    }
+
+    private static void mostrarMenu() {
+        System.out.println("\n----- MENÚ PRINCIPAL -----");
+        System.out.println("Elige una opción:");
+        System.out.println("[1] Jugar a adivinar el número");
+        System.out.println("[2] Enviar un mensaje a otro usuario");
+        System.out.println("[3] Leer mis mensajes");
+        System.out.println("[4] Salir");
+        System.out.print("> ");
+    }
+
+    private static void jugar(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
+        while (true) {
+            System.out.print("Ingresa tu intento (1-10): ");
+            String intento = teclado.readLine();
+            escritor.println(intento);
+
+            String respuesta = lectorServidor.readLine();
+            System.out.println("Servidor: " + respuesta);
+
+            // Si el juego termina (por ganar, perder o error), salimos de la función
+            if (respuesta.contains("Felicidades") || respuesta.contains("Se acabaron") || respuesta.equals("FIN_JUEGO")) {
+                break;
+            }
         }
     }
 }
