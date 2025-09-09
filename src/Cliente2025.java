@@ -12,25 +12,23 @@ public class Cliente2025 {
                 BufferedReader lectorServidor = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 BufferedReader teclado = new BufferedReader(new InputStreamReader(System.in))
         ) {
-            // --- FASE DE AUTENTICACIÓN ---
+
             System.out.println("Servidor: " + lectorServidor.readLine()); // Mensaje de bienvenida
             String opcionLogin = teclado.readLine();
             escritor.println(opcionLogin);
-
-            // Si la opción es '3', solo leemos la lista de usuarios
             if ("3".equals(opcionLogin)) {
                 String linea;
                 while (!(linea = lectorServidor.readLine()).equals("FIN_USUARIOS")) {
                     System.out.println(linea);
                 }
-                return; // Termina el programa
+                return;
             }
 
-            System.out.println("Servidor: " + lectorServidor.readLine()); // Pide Usuario
+            System.out.println("Servidor: " + lectorServidor.readLine());
             String usuario = teclado.readLine();
             escritor.println(usuario);
 
-            System.out.println("Servidor: " + lectorServidor.readLine()); // Pide Contraseña
+            System.out.println("Servidor: " + lectorServidor.readLine());
             String contrasena = teclado.readLine();
             escritor.println(contrasena);
 
@@ -43,44 +41,40 @@ public class Cliente2025 {
                 return;
             }
 
-            // ---- NUEVO: BUCLE DE MENÚ PRINCIPAL ----
             while (true) {
                 mostrarMenu();
                 String opcionMenu = teclado.readLine();
                 escritor.println(opcionMenu);
 
-                if ("1".equals(opcionMenu)) { // JUGAR
-                    System.out.println(lectorServidor.readLine()); // Lee "¡Vamos a jugar!..."
+                if ("1".equals(opcionMenu)) {
+                    System.out.println(lectorServidor.readLine());
                     jugar(lectorServidor, teclado, escritor);
 
-                } else if ("2".equals(opcionMenu)) { // ENVIAR MENSAJE
-                    // Lee pregunta de destinatario
+                } else if ("2".equals(opcionMenu)) { //JUGAR
+
                     System.out.println("Servidor: " + lectorServidor.readLine());
                     String destinatario = teclado.readLine();
                     escritor.println(destinatario);
 
-                    // Lee la respuesta del servidor (si pide mensaje o si hay error)
                     String respuestaDestinatario = lectorServidor.readLine();
                     System.out.println("Servidor: " + respuestaDestinatario);
 
-                    // Solo si no hubo error, pedimos el mensaje
                     if (!respuestaDestinatario.startsWith("Error:")) {
                         String mensaje = teclado.readLine();
                         escritor.println(mensaje);
-                        // Imprime la confirmación final
+
                         System.out.println("Servidor: " + lectorServidor.readLine());
                     }
 
                 } else if ("3".equals(opcionMenu)) { // LEER MENSAJES
                     String linea;
-                    // Leemos líneas hasta que el servidor envíe la señal de fin
                     while (!(linea = lectorServidor.readLine()).equals("FIN_MENSAJES")) {
                         System.out.println(linea);
                     }
 
                 } else if ("4".equals(opcionMenu)) { // SALIR
                     System.out.println("Desconectando del servidor...");
-                    break; // Rompe el bucle while y cierra el programa
+                    break;
 
                 } else {
                     System.out.println("Opción no válida. Inténtalo de nuevo.");
@@ -107,11 +101,9 @@ public class Cliente2025 {
             System.out.print("Ingresa tu intento (1-10): ");
             String intento = teclado.readLine();
             escritor.println(intento);
-
             String respuesta = lectorServidor.readLine();
             System.out.println("Servidor: " + respuesta);
 
-            // Si el juego termina (por ganar, perder o error), salimos de la función
             if (respuesta.contains("Felicidades") || respuesta.contains("Se acabaron") || respuesta.equals("FIN_JUEGO")) {
                 break;
             }

@@ -33,7 +33,7 @@ public class Servidor2025 {
             escritor.println("Bienvenido. ¿Deseas [1] Iniciar sesión, [2] Registrarte o [3] Ver usuarios registrados?");
             String opcion = lector.readLine();
 
-            String usuarioAutenticado = null; // Guardará el nombre del usuario que inició sesión
+            String usuarioAutenticado = null; // Guarda el nombre del usuario que inició sesión
 
             if ("3".equals(opcion)) {
                 mostrarUsuariosRegistrados(escritor);
@@ -64,13 +64,11 @@ public class Servidor2025 {
                 escritor.println("Opción no válida");
             }
 
-            // Si el usuario no fue autenticado, se cierra la conexión
             if (usuarioAutenticado == null) {
                 cliente.close();
                 return;
             }
 
-            // ---- NUEVO: MENÚ DE OPCIONES DESPUÉS DE INICIAR SESIÓN ----
             String opcionMenu;
             while ((opcionMenu = lector.readLine()) != null) {
                 switch (opcionMenu) {
@@ -86,7 +84,7 @@ public class Servidor2025 {
                     case "4":
                         System.out.println("Cliente " + usuarioAutenticado + " ha cerrado sesión.");
                         cliente.close();
-                        return; // Salir del método y del hilo
+                        return;
                     default:
                         escritor.println("Opción de menú no válida.");
                         break;
@@ -106,7 +104,7 @@ public class Servidor2025 {
         }
     }
 
-    // ---- LÓGICA DEL JUEGO MOVIDA A SU PROPIO MÉTODO ----
+
     private static void jugarAdivinarNumero(BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("¡Vamos a jugar! Adivina el número del 1 al 10. Tienes 3 intentos.");
         Random random = new Random();
@@ -116,7 +114,7 @@ public class Servidor2025 {
 
         while (intentos < 3) {
             String entrada = lector.readLine();
-            if (entrada == null) break; // Cliente se desconectó
+            if (entrada == null) break;
 
             try {
                 int intentoCliente = Integer.parseInt(entrada);
@@ -138,7 +136,6 @@ public class Servidor2025 {
         if (!adivinado) {
             escritor.println("Se acabaron los intentos. El número era: " + numeroSecreto);
         }
-        // Señal para que el cliente sepa que el juego terminó y puede volver a mostrar el menú
         escritor.println("FIN_JUEGO");
     }
 
@@ -146,8 +143,12 @@ public class Servidor2025 {
     private static void enviarMensaje(String remitente, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("¿Para quién es el mensaje? (nombre de usuario)");
         String destinatario = lector.readLine();
-        if (destinatario == null) return;
+        if (destinatario == null ) return;
 
+        if (destinatario.equals(remitente)) {
+            escritor.println("Error: No puedes enviarte un mensaje a ti mismo.");
+            return;
+        }
         if (!verificarUsuarioExiste(destinatario)) {
             escritor.println("Error: El usuario '" + destinatario + "' no existe.");
             return;
@@ -157,7 +158,6 @@ public class Servidor2025 {
         String mensaje = lector.readLine();
         if (mensaje == null) return;
 
-        // Sincronizado para evitar que varios hilos escriban a la vez
         synchronized (Servidor2025.class) {
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_MENSAJES, true))) {
                 writer.write(destinatario + ":" + remitente + ":" + mensaje); // Formato: destinatario:remitente:mensaje
@@ -195,11 +195,9 @@ public class Servidor2025 {
             }
         }
         escritor.println("--- Fin de los mensajes ---");
-        // Señal para que el cliente sepa que ya no hay más mensajes que leer
         escritor.println("FIN_MENSAJES");
     }
 
-    // --- MÉTODOS DE USUARIO EXISTENTES (CON PEQUEÑOS AJUSTES) ---
 
     private static boolean verificarUsuarioExiste(String usuario) throws IOException {
         File archivo = new File(ARCHIVO_USUARIOS);
@@ -234,7 +232,6 @@ public class Servidor2025 {
     }
 
     private static boolean registrarUsuario(String usuario, String contrasena) throws IOException {
-        // Sincronizado para evitar condición de carrera al registrar
         synchronized (Servidor2025.class) {
             if (verificarUsuarioExiste(usuario)) {
                 return false; // Usuario ya existe
@@ -265,7 +262,6 @@ public class Servidor2025 {
                 escritor.println("Error al leer usuarios.");
             }
         }
-        // Señal para que el cliente sepa que la lista terminó
         escritor.println("FIN_USUARIOS");
     }
 }
