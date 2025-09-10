@@ -6,7 +6,7 @@ import java.util.*;
 public class Servidor2025 {
 
     private static final String ARCHIVO_USUARIOS = "usuarios.txt";
-    private static final String ARCHIVO_MENSAJES = "mensajes.txt"; // Nuevo archivo para mensajes
+    private static final String ARCHIVO_MENSAJES = "mensajes.txt";
 
     public static void main(String[] args) {
         try {
@@ -49,16 +49,20 @@ public class Servidor2025 {
             if ("1".equals(opcion)) {
                 if (verificarCredenciales(usuario, contrasena)) {
                     escritor.println("Autenticación exitosa");
-                    usuarioAutenticado = usuario; // Guardamos el usuario
+                    usuarioAutenticado = usuario;
                 } else {
                     escritor.println("Credenciales inválidas");
                 }
             } else if ("2".equals(opcion)) {
-                if (registrarUsuario(usuario, contrasena)) {
-                    escritor.println("Usuario registrado exitosamente");
-                    usuarioAutenticado = usuario; // Autenticamos después de registrar
+                if (!esContrasenaValida(contrasena)) {
+                    escritor.println("Contraseña no válida. Debe tener al menos 8 caracteres y no puede estar vacía.");
                 } else {
-                    escritor.println("El usuario ya existe");
+                    if (registrarUsuario(usuario, contrasena)) {
+                        escritor.println("Usuario registrado exitosamente");
+                        usuarioAutenticado = usuario;
+                    } else {
+                        escritor.println("El usuario ya existe");
+                    }
                 }
             } else {
                 escritor.println("Opción no válida");
@@ -104,6 +108,10 @@ public class Servidor2025 {
         }
     }
 
+    private static boolean esContrasenaValida(String contrasena) {
+        return contrasena != null && !contrasena.trim().isEmpty() && contrasena.length() >= 8;
+    }
+
 
     private static void jugarAdivinarNumero(BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("¡Vamos a jugar! Adivina el número del 1 al 10. Tienes 3 intentos.");
@@ -115,7 +123,6 @@ public class Servidor2025 {
         while (intentos < 3) {
             String entrada = lector.readLine();
             if (entrada == null) break;
-
             try {
                 int intentoCliente = Integer.parseInt(entrada);
                 intentos++;
@@ -265,5 +272,3 @@ public class Servidor2025 {
         escritor.println("FIN_USUARIOS");
     }
 }
-
-

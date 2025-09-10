@@ -1,5 +1,2 @@
-Arturo2:Arturo:Hola amigo como estas
-Arturo:Arturo3:Hola como estas mi amigo
-Arturo:Arturo2:Holahola
-Arturo:Arturo3:AdiosAdios
-Arturo2:Arturo:que tal
+Arturo:Arturo2:Hola como estas amigo
+Arturo2:Arturo:
