@@ -27,3 +27,17 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Build
+out/
+target/
+
+# Java
+*.class
+
+# Otros
+.DS_Store
