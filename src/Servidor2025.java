@@ -167,8 +167,10 @@ public class Servidor2025 {
 
         escritor.println("Escribe tu mensaje:");
         String mensaje = lector.readLine();
-        if (mensaje == null) return;
-
+        if (mensaje == null || mensaje.trim().isEmpty()) {
+            escritor.println("Error: No se puede enviar un mensaje vacío.");
+            return;
+        }
         synchronized (Servidor2025.class) {
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_MENSAJES, true))) {
                 writer.write(destinatario + ":" + remitente + ":" + mensaje); // Formato: destinatario:remitente:mensaje
