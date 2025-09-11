@@ -50,8 +50,8 @@ public class Cliente2025 {
                 if ("1".equals(opcionMenu)) {
                     System.out.println(lectorServidor.readLine());
                     jugar(lectorServidor, teclado, escritor);
-                    socket.close();
-                    System.exit(0);
+                    //socket.close();
+                    //System.exit(0);
                 } else if ("2".equals(opcionMenu)) { // Enviar mensaje
 
                     System.out.println("Servidor: " + lectorServidor.readLine());

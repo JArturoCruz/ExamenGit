@@ -146,9 +146,9 @@ public class Servidor2025 {
             }
         }
 
-        if (!ganador) {
-            escritor.println("No lograste adivinar el número. Era: " + numeroSecreto + ". Mejor suerte la próxima vez.");
-        }
+       // if (!ganador) {
+         //   escritor.println("No lograste adivinar el número. Era: " + numeroSecreto + ". Mejor suerte la próxima vez.");
+       // }
     }
 
     private static void enviarMensaje(String remitente, BufferedReader lector, PrintWriter escritor) throws IOException {
