@@ -16,13 +16,6 @@ public class Cliente2025 {
             System.out.println("Servidor: " + lectorServidor.readLine()); // Mensaje de bienvenida
             String opcionLogin = teclado.readLine();
             escritor.println(opcionLogin);
-            if ("3".equals(opcionLogin)) {
-                String linea;
-                while (!(linea = lectorServidor.readLine()).equals("FIN_USUARIOS")) {
-                    System.out.println(linea);
-                }
-                return;
-            }
 
             System.out.println("Servidor: " + lectorServidor.readLine());
             String usuario = teclado.readLine();
@@ -41,16 +34,25 @@ public class Cliente2025 {
                 return;
             }
 
+            String opcionMenu;
             while (true) {
                 mostrarMenu();
-                String opcionMenu = teclado.readLine();
+                opcionMenu = teclado.readLine();
+
+                // Validación del input del menú
+                if (!opcionMenu.matches("[1-4]")) {
+                    System.out.println("Opción no válida. Inténtalo de nuevo.");
+                    continue;
+                }
+
                 escritor.println(opcionMenu);
 
                 if ("1".equals(opcionMenu)) {
                     System.out.println(lectorServidor.readLine());
                     jugar(lectorServidor, teclado, escritor);
-
-                } else if ("2".equals(opcionMenu)) { //JUGAR
+                    socket.close();
+                    System.exit(0);
+                } else if ("2".equals(opcionMenu)) { // Enviar mensaje
 
                     System.out.println("Servidor: " + lectorServidor.readLine());
                     String destinatario = teclado.readLine();
@@ -66,18 +68,15 @@ public class Cliente2025 {
                         System.out.println("Servidor: " + lectorServidor.readLine());
                     }
 
-                } else if ("3".equals(opcionMenu)) { // LEER MENSAJES
+                } else if ("3".equals(opcionMenu)) { // Leer mensajes
                     String linea;
                     while (!(linea = lectorServidor.readLine()).equals("FIN_MENSAJES")) {
                         System.out.println(linea);
                     }
 
-                } else if ("4".equals(opcionMenu)) { // SALIR
+                } else if ("4".equals(opcionMenu)) { // Salir
                     System.out.println("Desconectando del servidor...");
                     break;
-
-                } else {
-                    System.out.println("Opción no válida. Inténtalo de nuevo.");
                 }
             }
 
@@ -97,14 +96,15 @@ public class Cliente2025 {
     }
 
     private static void jugar(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
-        while (true) {
+        int contador=0;
+        while (contador<=2) {
             System.out.print("Ingresa tu intento (1-10): ");
             String intento = teclado.readLine();
             escritor.println(intento);
             String respuesta = lectorServidor.readLine();
             System.out.println("Servidor: " + respuesta);
-
-            if (respuesta.contains("Felicidades") || respuesta.contains("Se acabaron") || respuesta.equals("FIN_JUEGO")) {
+            contador=contador+1;
+            if (respuesta.contains("FIN_JUEGO")) {
                 break;
             }
         }

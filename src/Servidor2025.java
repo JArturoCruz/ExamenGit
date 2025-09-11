@@ -30,17 +30,10 @@ public class Servidor2025 {
                 PrintWriter escritor = new PrintWriter(cliente.getOutputStream(), true);
                 BufferedReader lector = new BufferedReader(new InputStreamReader(cliente.getInputStream()))
         ) {
-            escritor.println("Bienvenido. ¿Deseas [1] Iniciar sesión, [2] Registrarte o [3] Ver usuarios registrados?");
+            escritor.println("Bienvenido. ¿Deseas [1] Iniciar sesión, [2] Registrarte ");
             String opcion = lector.readLine();
 
             String usuarioAutenticado = null; // Guarda el nombre del usuario que inició sesión
-
-            if ("3".equals(opcion)) {
-                mostrarUsuariosRegistrados(escritor);
-                cliente.close();
-                return;
-            }
-
             escritor.println("Usuario:");
             String usuario = lector.readLine();
             escritor.println("Contraseña:");
@@ -75,6 +68,8 @@ public class Servidor2025 {
 
             String opcionMenu;
             while ((opcionMenu = lector.readLine()) != null) {
+                System.out.println("Opción recibida del cliente '" + usuarioAutenticado + "': '" + opcionMenu + "'");  // <-- Aquí está el print agregado
+
                 switch (opcionMenu) {
                     case "1":
                         jugarAdivinarNumero(lector, escritor);
@@ -108,44 +103,53 @@ public class Servidor2025 {
         }
     }
 
+
     private static boolean esContrasenaValida(String contrasena) {
         return contrasena != null && !contrasena.trim().isEmpty() && contrasena.length() >= 8;
     }
 
 
     private static void jugarAdivinarNumero(BufferedReader lector, PrintWriter escritor) throws IOException {
-        escritor.println("¡Vamos a jugar! Adivina el número del 1 al 10. Tienes 3 intentos.");
+        escritor.println("¡Bienvenido al juego de adivinar! Elige un número del 1 al 10. Solo tienes 3 intentos.");
+
         Random random = new Random();
         int numeroSecreto = random.nextInt(10) + 1;
-        int intentos = 0;
-        boolean adivinado = false;
+        boolean ganador = false;
 
-        while (intentos < 3) {
+        for (int intento = 1; intento <= 3; intento++) {
             String entrada = lector.readLine();
             if (entrada == null) break;
+
+            int numeroIngresado;
             try {
-                int intentoCliente = Integer.parseInt(entrada);
-                intentos++;
-                if (intentoCliente == numeroSecreto) {
-                    escritor.println("¡Felicidades! Has adivinado el número.");
-                    adivinado = true;
-                    break;
-                } else if (intentoCliente < numeroSecreto) {
-                    escritor.println("El número es mayor.");
-                } else {
-                    escritor.println("El número es menor.");
-                }
+                numeroIngresado = Integer.parseInt(entrada);
             } catch (NumberFormatException e) {
-                escritor.println("Entrada inválida. Ingresa un número.");
+                escritor.println("Eso no es un número válido. Intenta de nuevo.");
+                intento--; // no contar este intento
+                continue;
+            }
+
+            if (numeroIngresado < 1 || numeroIngresado > 10) {
+                escritor.println("Número fuera de rango (1-10). Prueba otra vez.");
+                intento--; // no contar este intento
+                continue;
+            }
+
+            if (numeroIngresado == numeroSecreto) {
+                escritor.println("¡Genial! Adivinaste el número correcto. FIN_JUEGO");
+                ganador = true;
+                break;
+            } else if (numeroIngresado < numeroSecreto) {
+                escritor.println("El número secreto es más alto.");
+            } else {
+                escritor.println("El número secreto es más bajo.");
             }
         }
 
-        if (!adivinado) {
-            escritor.println("Se acabaron los intentos. El número era: " + numeroSecreto);
+        if (!ganador) {
+            escritor.println("No lograste adivinar el número. Era: " + numeroSecreto + ". Mejor suerte la próxima vez.");
         }
-        escritor.println("FIN_JUEGO");
     }
-
 
     private static void enviarMensaje(String remitente, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("¿Para quién es el mensaje? (nombre de usuario)");
