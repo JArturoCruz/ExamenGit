@@ -96,17 +96,23 @@ public class Cliente2025 {
     }
 
     private static void jugar(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
-        int contador=0;
-        while (contador<=2) {
+        int contador = 0;
+        while (contador <= 2) {
             System.out.print("Ingresa tu intento (1-10): ");
             String intento = teclado.readLine();
-            escritor.println(intento);
-            String respuesta = lectorServidor.readLine();
-            System.out.println("Servidor: " + respuesta);
-            contador=contador+1;
-            if (respuesta.contains("FIN_JUEGO")) {
-                break;
+            try {
+                int numero = Integer.parseInt(intento);
+                escritor.println(intento);
+                String respuesta = lectorServidor.readLine();
+                System.out.println("Servidor: " + respuesta);
+                contador = contador + 1;
+                if (respuesta.contains("FIN_JUEGO")) {
+                    break;
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Entrada inválida. Por favor, ingresa un número.");
             }
         }
+
     }
 }
