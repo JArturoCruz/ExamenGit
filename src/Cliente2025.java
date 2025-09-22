@@ -68,9 +68,23 @@ public class Cliente2025 {
                         break;
 
                     case "3": // Leer mensajes
-                        String linea;
-                        while (!(linea = lectorServidor.readLine()).equals("FIN_MENSAJES")) {
+                        while (true) {
+                            String linea = lectorServidor.readLine();
+                            if (linea == null) break;
+
                             System.out.println(linea);
+
+                            if (linea.equals("FIN_PAGINA")) {
+                                System.out.print("Elige una opción: ");
+                                String eleccion = teclado.readLine();
+                                escritor.println(eleccion);
+                                if (eleccion.equalsIgnoreCase("V")) {
+                                    break;
+                                }
+                            } else if (linea.contains("No tienes mensajes.")) {
+                                // En este caso, no hay paginación y el servidor nos dice que terminemos.
+                                break;
+                            }
                         }
                         break;
 
@@ -81,20 +95,23 @@ public class Cliente2025 {
                     case "5": // Eliminar mensaje recibido
                     case "6": // Eliminar mensaje enviado
                         while (true) {
-                            linea = lectorServidor.readLine();
+                            String linea = lectorServidor.readLine();
                             if (linea == null
                                     || linea.equals("Mensaje eliminado exitosamente.")
                                     || linea.contains("No tienes")
-                                    || linea.equals("Escribe el número del mensaje que deseas eliminar:")) {
+                                    || linea.equals("Escribe el número del mensaje que deseas eliminar:")
+                                    || linea.equals("Selección fuera de rango.")
+                                    || linea.equals("Entrada inválida.")) {
                                 System.out.println(linea);
                                 break;
                             }
                             System.out.println(linea);
                         }
 
-                        if ("Escribe el número del mensaje que deseas eliminar:".equals(linea)) {
+                        String ultimaLinea = lectorServidor.readLine();
+                        System.out.println(ultimaLinea);
+                        if ("Escribe el número del mensaje que deseas eliminar:".equals(ultimaLinea)) {
                             String seleccion = teclado.readLine();
-                            System.out.println("Enviando selección: " + seleccion); // depuración
                             escritor.println(seleccion);
                             System.out.println("Servidor: " + lectorServidor.readLine());
                         }
@@ -102,7 +119,6 @@ public class Cliente2025 {
 
                 }
 
-                // Mostrar menú actualizado enviado por el servidor
                 String lineaMenu;
                 while ((lineaMenu = lectorServidor.readLine()) != null) {
                     if (lineaMenu.startsWith("Menú:")) {

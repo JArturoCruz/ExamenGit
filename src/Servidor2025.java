@@ -80,7 +80,7 @@ public class Servidor2025 {
                         enviarMensaje(usuarioAutenticado, lector, escritor);
                         break;
                     case "3":
-                        leerMensajes(usuarioAutenticado, escritor);
+                        leerMensajes(usuarioAutenticado, escritor, lector);
                         break;
                     case "4":
                         System.out.println("Cliente " + usuarioAutenticado + " ha cerrado sesión.");
@@ -186,31 +186,67 @@ public class Servidor2025 {
         }
     }
 
-    private static void leerMensajes(String usuario, PrintWriter escritor) {
-        escritor.println("--- Tus mensajes ---");
+    private static void leerMensajes(String usuario, PrintWriter escritor, BufferedReader lector) throws IOException {
+        List<String> mensajesRecibidos = new ArrayList<>();
         File archivo = new File(ARCHIVO_MENSAJES);
-        if (!archivo.exists()) {
-            escritor.println("No tienes mensajes.");
-        } else {
+
+        if (archivo.exists()) {
             try (BufferedReader reader = new BufferedReader(new FileReader(archivo))) {
                 String linea;
-                int contador = 0;
                 while ((linea = reader.readLine()) != null) {
                     String[] partes = linea.split(":", 3);
                     if (partes.length == 3 && partes[0].equals(usuario)) {
-                        escritor.println("De [" + partes[1] + "]: " + partes[2]);
-                        contador++;
+                        mensajesRecibidos.add(linea);
                     }
                 }
-                if (contador == 0) {
-                    escritor.println("No tienes mensajes nuevos.");
-                }
-            } catch (IOException e) {
-                escritor.println("Error al leer los mensajes.");
             }
         }
-        escritor.println("--- Fin de los mensajes ---");
-        escritor.println("FIN_MENSAJES");
+
+        if (mensajesRecibidos.isEmpty()) {
+            escritor.println("No tienes mensajes.");
+            escritor.println("FIN_PAGINA");
+            return;
+        }
+
+        int mensajesPorPagina = 10;
+        int totalPaginas = (int) Math.ceil((double) mensajesRecibidos.size() / mensajesPorPagina);
+        int paginaActual = 1;
+
+        while (true) {
+            escritor.println("--- Mensajes (Página " + paginaActual + " de " + totalPaginas + ") ---");
+
+            int inicio = (paginaActual - 1) * mensajesPorPagina;
+            int fin = Math.min(inicio + mensajesPorPagina, mensajesRecibidos.size());
+
+            for (int i = inicio; i < fin; i++) {
+                String[] partes = mensajesRecibidos.get(i).split(":", 3);
+                escritor.println("De [" + partes[1] + "]: " + partes[2]);
+            }
+
+            if (totalPaginas > 1) {
+                if (paginaActual < totalPaginas) {
+                    escritor.println("[N] Siguiente página");
+                }
+                if (paginaActual > 1) {
+                    escritor.println("[A] Anterior página");
+                }
+            }
+            escritor.println("[V] Volver al menú principal");
+            escritor.println("FIN_PAGINA");
+
+            String opcionCliente = lector.readLine();
+            if (opcionCliente == null) break;
+
+            if (opcionCliente.equalsIgnoreCase("N") && paginaActual < totalPaginas) {
+                paginaActual++;
+            } else if (opcionCliente.equalsIgnoreCase("A") && paginaActual > 1) {
+                paginaActual--;
+            } else if (opcionCliente.equalsIgnoreCase("V")) {
+                break;
+            } else {
+                escritor.println("Opción no válida.");
+            }
+        }
     }
 
     private static void eliminarMensajeRecibido(String usuario, BufferedReader lector, PrintWriter escritor) throws IOException {
