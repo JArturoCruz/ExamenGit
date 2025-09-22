@@ -131,8 +131,9 @@ public class Servidor2025 {
 
         Random random = new Random();
         int numeroSecreto = random.nextInt(10) + 1;
+        int intentosTotales = 3;
 
-        for (int intento = 1; intento <= 3; intento++) {
+        for (int intento = 1; intento <= intentosTotales; intento++) {
             String entrada = lector.readLine();
             if (entrada == null) break;
 
@@ -140,13 +141,15 @@ public class Servidor2025 {
             try {
                 numeroIngresado = Integer.parseInt(entrada);
             } catch (NumberFormatException e) {
-                escritor.println("Eso no es un número válido. Intenta de nuevo.");
+                int intentosRestantes = intentosTotales - (intento - 1);
+                escritor.println("Eso no es un número válido. Te quedan " + (intentosRestantes) + " intentos.");
                 intento--;
                 continue;
             }
 
             if (numeroIngresado < 1 || numeroIngresado > 10) {
-                escritor.println("Número fuera de rango (1-10). Prueba otra vez.");
+                int intentosRestantes = intentosTotales - (intento - 1);
+                escritor.println("Número fuera de rango (1-10). Te quedan " + (intentosRestantes) + " intentos.");
                 intento--;
                 continue;
             }
@@ -154,10 +157,13 @@ public class Servidor2025 {
             if (numeroIngresado == numeroSecreto) {
                 escritor.println("¡Genial! Adivinaste el número correcto. FIN_JUEGO");
                 return;
-            } else if (numeroIngresado < numeroSecreto) {
-                escritor.println("El número secreto es más alto.");
-            } else {
-                escritor.println("El número secreto es más bajo.");
+            } else if (intento < intentosTotales) {
+                int intentosRestantes = intentosTotales - intento;
+                if (numeroIngresado < numeroSecreto) {
+                    escritor.println("El número secreto es más alto. Te quedan " + intentosRestantes + " intentos.");
+                } else {
+                    escritor.println("El número secreto es más bajo. Te quedan " + intentosRestantes + " intentos.");
+                }
             }
         }
         escritor.println("No lograste adivinar el número. Era: " + numeroSecreto + ". Mejor suerte la próxima vez. FIN_JUEGO");

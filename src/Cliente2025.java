@@ -16,7 +16,6 @@ public class Cliente2025 {
             System.out.println("Servidor: " + lectorServidor.readLine()); // Bienvenida
 
             String opcionLogin;
-            // Bucle de validación para la opción inicial
             while (true) {
                 System.out.print("Elige una opción: ");
                 opcionLogin = teclado.readLine();
@@ -57,6 +56,7 @@ public class Cliente2025 {
 
                 switch (opcionMenu) {
                     case "1":
+                        // El cliente lee el mensaje inicial del juego
                         System.out.println("Servidor: " + lectorServidor.readLine());
                         jugar(lectorServidor, teclado, escritor);
                         break;
@@ -146,16 +146,12 @@ public class Cliente2025 {
         while (true) {
             System.out.print("Ingresa tu intento (1-10): ");
             String intento = teclado.readLine();
-            try {
-                Integer.parseInt(intento);
-                escritor.println(intento);
-                String respuesta = lectorServidor.readLine();
-                System.out.println("Servidor: " + respuesta);
-                if (respuesta.contains("FIN_JUEGO")) {
-                    break;
-                }
-            } catch (NumberFormatException e) {
-                System.out.println("Entrada inválida. Por favor, ingresa un número.");
+            escritor.println(intento);
+            String respuesta = lectorServidor.readLine();
+            System.out.println("Servidor: " + respuesta);
+
+            if (respuesta.contains("FIN_JUEGO")) {
+                break;
             }
         }
     }
