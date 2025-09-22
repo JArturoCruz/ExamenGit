@@ -170,9 +170,12 @@ public class Servidor2025 {
     }
 
     private static void enviarMensaje(String remitente, BufferedReader lector, PrintWriter escritor) throws IOException {
-        escritor.println("¿Para quién es el mensaje? (nombre de usuario)");
+        escritor.println("¿Para quién es el mensaje? Escribe '[V]' para volver.");
         String destinatario = lector.readLine();
-        if (destinatario == null ) return;
+        if (destinatario == null || destinatario.equalsIgnoreCase("V")) {
+            escritor.println("Volviendo al menú principal.");
+            return;
+        }
 
         if (destinatario.equals(remitente)) {
             escritor.println("Error: No puedes enviarte un mensaje a ti mismo.");
@@ -185,10 +188,15 @@ public class Servidor2025 {
 
         escritor.println("Escribe tu mensaje:");
         String mensaje = lector.readLine();
-        if (mensaje == null || mensaje.trim().isEmpty()) {
+        if (mensaje == null || mensaje.equalsIgnoreCase("V")) {
+            escritor.println("Volviendo al menú principal.");
+            return;
+        }
+        if (mensaje.trim().isEmpty()) {
             escritor.println("Error: No se puede enviar un mensaje vacío.");
             return;
         }
+
         synchronized (Servidor2025.class) {
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_MENSAJES, true))) {
                 writer.write(destinatario + ":" + remitente + ":" + mensaje);

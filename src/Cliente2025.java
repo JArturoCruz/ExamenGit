@@ -13,7 +13,7 @@ public class Cliente2025 {
                 BufferedReader teclado = new BufferedReader(new InputStreamReader(System.in))
         ) {
 
-            System.out.println("Servidor: " + lectorServidor.readLine()); // Bienvenida
+            System.out.println("Servidor: " + lectorServidor.readLine());
 
             String opcionLogin;
             while (true) {
@@ -27,11 +27,11 @@ public class Cliente2025 {
                 }
             }
 
-            System.out.println("Servidor: " + lectorServidor.readLine()); // Solicitud de Usuario
+            System.out.println("Servidor: " + lectorServidor.readLine());
             String usuario = teclado.readLine();
             escritor.println(usuario);
 
-            System.out.println("Servidor: " + lectorServidor.readLine()); // Solicitud de Contraseña
+            System.out.println("Servidor: " + lectorServidor.readLine());
             String contrasena = teclado.readLine();
             escritor.println(contrasena);
 
@@ -43,7 +43,7 @@ public class Cliente2025 {
                 return;
             }
 
-            System.out.println("Servidor: " + lectorServidor.readLine()); // Mostrar menú inicial
+            System.out.println("Servidor: " + lectorServidor.readLine());
             String opcionMenu;
             while (true) {
                 opcionMenu = teclado.readLine();
@@ -56,22 +56,35 @@ public class Cliente2025 {
 
                 switch (opcionMenu) {
                     case "1":
-                        // El cliente lee el mensaje inicial del juego
                         System.out.println("Servidor: " + lectorServidor.readLine());
                         jugar(lectorServidor, teclado, escritor);
                         break;
 
                     case "2":
-                        System.out.println("Servidor: " + lectorServidor.readLine());
+                        // Lee el mensaje del servidor para el destinatario
+                        String promptDestinatario = lectorServidor.readLine();
+                        System.out.println("Servidor: " + promptDestinatario);
                         String destinatario = teclado.readLine();
                         escritor.println(destinatario);
+
+                        // Si el usuario decidió volver, el servidor envía un mensaje de confirmación y volvemos al menú.
+                        if (destinatario.equalsIgnoreCase("V")) {
+                            System.out.println("Servidor: " + lectorServidor.readLine()); // Lee el mensaje "Volviendo..."
+                            break;
+                        }
 
                         String respuestaDestinatario = lectorServidor.readLine();
                         System.out.println("Servidor: " + respuestaDestinatario);
 
+                        // Si el usuario existe, pide el mensaje.
                         if (!respuestaDestinatario.startsWith("Error:")) {
                             String mensaje = teclado.readLine();
                             escritor.println(mensaje);
+                            // Si el usuario decidió volver, el servidor envía un mensaje de confirmación y volvemos al menú.
+                            if (mensaje.equalsIgnoreCase("V")) {
+                                System.out.println("Servidor: " + lectorServidor.readLine()); // Lee el mensaje "Volviendo..."
+                                break;
+                            }
                             System.out.println("Servidor: " + lectorServidor.readLine());
                         }
                         break;
@@ -146,7 +159,9 @@ public class Cliente2025 {
         while (true) {
             System.out.print("Ingresa tu intento (1-10): ");
             String intento = teclado.readLine();
+
             escritor.println(intento);
+
             String respuesta = lectorServidor.readLine();
             System.out.println("Servidor: " + respuesta);
 
