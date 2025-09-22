@@ -1,14 +1,19 @@
-Arturo2:Arturo:hola
 Arturo:Arturo2:hola
 Arturo:Arturo2:hola2
 Arturo:Arturo2:hola3
-Arturo:Arturo2:hola4
 Arturo:Arturo2:hola5
 Arturo:Arturo2:hola6
 Arturo:Arturo2:hola7
 Arturo:Arturo2:hola8
-Arturo:Arturo2:hola9
 Arturo:Arturo2:hola10
 Arturo:Arturo2:hola11
 Arturo:Arturo2:hola12
-Arturo:Arturo2:hola13
+Arturo2:Arturo:hola4
+Arturo2:Arturo:hola5
+Arturo2:Arturo:hola6
+Arturo2:Arturo:hola7
+Arturo2:Arturo:hola8
+Arturo2:Arturo:hola 9
+Arturo2:Arturo:hola 10
+Arturo2:Arturo:hola11
+Arturo2:Arturo:hola12

@@ -87,10 +87,10 @@ public class Servidor2025 {
                         cliente.close();
                         return;
                     case "5":
-                        eliminarMensajeRecibido(usuarioAutenticado, lector, escritor);
+                        eliminarMensajes(usuarioAutenticado, lector, escritor, "recibidos");
                         break;
                     case "6":
-                        eliminarMensajeEnviado(usuarioAutenticado, lector, escritor);
+                        eliminarMensajes(usuarioAutenticado, lector, escritor, "enviados");
                         break;
                     default:
                         escritor.println("Opción de menú no válida.");
@@ -249,120 +249,99 @@ public class Servidor2025 {
         }
     }
 
-    private static void eliminarMensajeRecibido(String usuario, BufferedReader lector, PrintWriter escritor) throws IOException {
+    private static void eliminarMensajes(String usuario, BufferedReader lector, PrintWriter escritor, String tipo) throws IOException {
         File archivo = new File(ARCHIVO_MENSAJES);
         if (!archivo.exists()) {
             escritor.println("No tienes mensajes para eliminar.");
+            escritor.println("FIN_PAGINA");
             return;
         }
 
         List<String> todasLasLineas = new ArrayList<>();
-        List<String> mensajesRecibidos = new ArrayList<>();
+        List<String> mensajesDeUsuario = new ArrayList<>();
 
         try (BufferedReader reader = new BufferedReader(new FileReader(archivo))) {
             String linea;
             while ((linea = reader.readLine()) != null) {
                 todasLasLineas.add(linea);
                 String[] partes = linea.split(":", 3);
-                if (partes.length == 3 && partes[0].equals(usuario)) {
-                    mensajesRecibidos.add(linea);
+                if (partes.length == 3) {
+                    if (tipo.equals("recibidos") && partes[0].equals(usuario)) {
+                        mensajesDeUsuario.add(linea);
+                    } else if (tipo.equals("enviados") && partes[1].equals(usuario)) {
+                        mensajesDeUsuario.add(linea);
+                    }
                 }
             }
         }
 
-        if (mensajesRecibidos.isEmpty()) {
-            escritor.println("No tienes mensajes recibidos.");
+        if (mensajesDeUsuario.isEmpty()) {
+            escritor.println("No tienes mensajes " + tipo + ".");
+            escritor.println("FIN_PAGINA");
             return;
         }
 
-        escritor.println("--- Mensajes recibidos ---");
-        for (int i = 0; i < mensajesRecibidos.size(); i++) {
-            String[] partes = mensajesRecibidos.get(i).split(":", 3);
-            escritor.println("[" + (i + 1) + "] De [" + partes[1] + "]: " + partes[2]);
-        }
-        escritor.println("Escribe el número del mensaje que deseas eliminar:");
-        int seleccion;
-        try {
-            seleccion = Integer.parseInt(lector.readLine());
-        } catch (NumberFormatException e) {
-            escritor.println("Entrada inválida.");
-            return;
-        }
+        int mensajesPorPagina = 10;
+        int totalPaginas = (int) Math.ceil((double) mensajesDeUsuario.size() / mensajesPorPagina);
+        int paginaActual = 1;
 
-        if (seleccion < 1 || seleccion > mensajesRecibidos.size()) {
-            escritor.println("Selección fuera de rango.");
-            return;
-        }
+        while (true) {
+            escritor.println("--- Mensajes " + tipo + " (Página " + paginaActual + " de " + totalPaginas + ") ---");
+            int inicio = (paginaActual - 1) * mensajesPorPagina;
+            int fin = Math.min(inicio + mensajesPorPagina, mensajesDeUsuario.size());
 
-        String mensajeAEliminar = mensajesRecibidos.get(seleccion - 1);
-        todasLasLineas.remove(mensajeAEliminar);
+            for (int i = inicio; i < fin; i++) {
+                String[] partes = mensajesDeUsuario.get(i).split(":", 3);
+                String deOpara = tipo.equals("recibidos") ? "De [" + partes[1] + "]" : "Para [" + partes[0] + "]";
+                escritor.println("[" + (i + 1) + "] " + deOpara + ": " + partes[2]);
+            }
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_MENSAJES))) {
-            for (String linea : todasLasLineas) {
-                writer.write(linea);
-                writer.newLine();
+            if (totalPaginas > 1) {
+                if (paginaActual < totalPaginas) {
+                    escritor.println("[N] Siguiente página");
+                }
+                if (paginaActual > 1) {
+                    escritor.println("[A] Anterior página");
+                }
+            }
+            escritor.println("Escribe el número del mensaje a eliminar o [V] para volver:");
+            escritor.println("FIN_PAGINA");
+
+            String opcionCliente = lector.readLine();
+            if (opcionCliente == null) return;
+
+            if (opcionCliente.equalsIgnoreCase("N") && paginaActual < totalPaginas) {
+                paginaActual++;
+            } else if (opcionCliente.equalsIgnoreCase("A") && paginaActual > 1) {
+                paginaActual--;
+            } else if (opcionCliente.equalsIgnoreCase("V")) {
+                break;
+            } else {
+                try {
+                    int seleccion = Integer.parseInt(opcionCliente);
+                    if (seleccion >= 1 && seleccion <= mensajesDeUsuario.size()) {
+                        String mensajeAEliminar = mensajesDeUsuario.get(seleccion - 1);
+                        todasLasLineas.remove(mensajeAEliminar);
+                        reescribirArchivo(todasLasLineas);
+                        escritor.println("Mensaje eliminado exitosamente.");
+                    } else {
+                        escritor.println("Selección fuera de rango.");
+                    }
+                } catch (NumberFormatException e) {
+                    escritor.println("Entrada inválida.");
+                }
+                break; // Después de cualquier acción de eliminación, salimos del bucle.
             }
         }
-
-        escritor.println("Mensaje eliminado exitosamente.");
     }
 
-    private static void eliminarMensajeEnviado(String usuario, BufferedReader lector, PrintWriter escritor) throws IOException {
-        File archivo = new File(ARCHIVO_MENSAJES);
-        if (!archivo.exists()) {
-            escritor.println("No tienes mensajes para eliminar.");
-            return;
-        }
-
-        List<String> todasLasLineas = new ArrayList<>();
-        List<String> mensajesEnviados = new ArrayList<>();
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(archivo))) {
-            String linea;
-            while ((linea = reader.readLine()) != null) {
-                todasLasLineas.add(linea);
-                String[] partes = linea.split(":", 3);
-                if (partes.length == 3 && partes[1].equals(usuario)) {
-                    mensajesEnviados.add(linea);
-                }
-            }
-        }
-
-        if (mensajesEnviados.isEmpty()) {
-            escritor.println("No tienes mensajes enviados.");
-            return;
-        }
-
-        escritor.println("--- Mensajes enviados ---");
-        for (int i = 0; i < mensajesEnviados.size(); i++) {
-            String[] partes = mensajesEnviados.get(i).split(":", 3);
-            escritor.println("[" + (i + 1) + "] Para [" + partes[0] + "]: " + partes[2]);
-        }
-        escritor.println("Escribe el número del mensaje que deseas eliminar:");
-        int seleccion;
-        try {
-            seleccion = Integer.parseInt(lector.readLine());
-        } catch (NumberFormatException e) {
-            escritor.println("Entrada inválida.");
-            return;
-        }
-
-        if (seleccion < 1 || seleccion > mensajesEnviados.size()) {
-            escritor.println("Selección fuera de rango.");
-            return;
-        }
-
-        String mensajeAEliminar = mensajesEnviados.get(seleccion - 1);
-        todasLasLineas.remove(mensajeAEliminar);
-
+    private static void reescribirArchivo(List<String> lineas) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_MENSAJES))) {
-            for (String linea : todasLasLineas) {
+            for (String linea : lineas) {
                 writer.write(linea);
                 writer.newLine();
             }
         }
-
-        escritor.println("Mensaje eliminado exitosamente.");
     }
 
     private static boolean verificarUsuarioExiste(String usuario) throws IOException {

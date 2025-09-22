@@ -70,11 +70,8 @@ public class Cliente2025 {
                     case "3": // Leer mensajes
                         while (true) {
                             String linea = lectorServidor.readLine();
-                            if (linea == null) break;
-
-                            System.out.println(linea);
-
-                            if (linea.equals("FIN_PAGINA")) {
+                            if (linea == null || linea.equals("FIN_PAGINA")) {
+                                if (linea == null) break;
                                 System.out.print("Elige una opción: ");
                                 String eleccion = teclado.readLine();
                                 escritor.println(eleccion);
@@ -82,8 +79,10 @@ public class Cliente2025 {
                                     break;
                                 }
                             } else if (linea.contains("No tienes mensajes.")) {
-                                // En este caso, no hay paginación y el servidor nos dice que terminemos.
+                                System.out.println(linea);
                                 break;
+                            } else {
+                                System.out.println(linea);
                             }
                         }
                         break;
@@ -96,27 +95,29 @@ public class Cliente2025 {
                     case "6": // Eliminar mensaje enviado
                         while (true) {
                             String linea = lectorServidor.readLine();
-                            if (linea == null
-                                    || linea.equals("Mensaje eliminado exitosamente.")
-                                    || linea.contains("No tienes")
-                                    || linea.equals("Escribe el número del mensaje que deseas eliminar:")
-                                    || linea.equals("Selección fuera de rango.")
-                                    || linea.equals("Entrada inválida.")) {
-                                System.out.println(linea);
-                                break;
-                            }
-                            System.out.println(linea);
-                        }
+                            if (linea == null) break;
 
-                        String ultimaLinea = lectorServidor.readLine();
-                        System.out.println(ultimaLinea);
-                        if ("Escribe el número del mensaje que deseas eliminar:".equals(ultimaLinea)) {
-                            String seleccion = teclado.readLine();
-                            escritor.println(seleccion);
-                            System.out.println("Servidor: " + lectorServidor.readLine());
+                            System.out.println(linea);
+
+                            if (linea.equals("FIN_PAGINA")) {
+                                System.out.print("Elige una opción: ");
+                                String eleccion = teclado.readLine();
+                                escritor.println(eleccion);
+                                if (eleccion.equalsIgnoreCase("V")) {
+                                    break;
+                                } else {
+                                    // Si la opción no es 'V', el servidor enviará un mensaje de respuesta (éxito, error, etc.)
+                                    String respuestaServidor = lectorServidor.readLine();
+                                    System.out.println("Servidor: " + respuestaServidor);
+                                    if (!respuestaServidor.contains("Página")) {
+                                        break; // Si se intentó eliminar, se sale del bucle de paginación.
+                                    }
+                                }
+                            } else if (linea.contains("No tienes mensajes")) {
+                                break; // Si no hay mensajes, el bucle termina.
+                            }
                         }
                         break;
-
                 }
 
                 String lineaMenu;
