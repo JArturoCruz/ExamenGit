@@ -34,19 +34,28 @@ public class Servidor2025 {
             String opcion = lector.readLine();
 
             String usuarioAutenticado = null;
-            escritor.println("Usuario:");
-            String usuario = lector.readLine();
-            escritor.println("Contraseña:");
-            String contrasena = lector.readLine();
 
             if ("1".equals(opcion)) {
-                if (verificarCredenciales(usuario, contrasena)) {
-                    escritor.println("Autenticación exitosa");
-                    usuarioAutenticado = usuario;
+                escritor.println("Usuario:");
+                String usuario = lector.readLine();
+
+                if (verificarUsuarioExiste(usuario)) {
+                    escritor.println("Contraseña:");
+                    String contrasena = lector.readLine();
+                    if (verificarCredenciales(usuario, contrasena)) {
+                        escritor.println("Autenticación exitosa");
+                        usuarioAutenticado = usuario;
+                    } else {
+                        escritor.println("Contraseña incorrecta");
+                    }
                 } else {
-                    escritor.println("Credenciales inválidas");
+                    escritor.println("El usuario no existe");
                 }
             } else if ("2".equals(opcion)) {
+                escritor.println("Usuario:");
+                String usuario = lector.readLine();
+                escritor.println("Contraseña:");
+                String contrasena = lector.readLine();
                 if (!esContrasenaValida(contrasena)) {
                     escritor.println("Contraseña no válida. Debe tener al menos 8 caracteres y no puede estar vacía.");
                 } else {
@@ -330,7 +339,7 @@ public class Servidor2025 {
                 } catch (NumberFormatException e) {
                     escritor.println("Entrada inválida.");
                 }
-                break; // Después de cualquier acción de eliminación, salimos del bucle.
+                break;
             }
         }
     }
