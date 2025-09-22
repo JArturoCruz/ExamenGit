@@ -14,14 +14,25 @@ public class Cliente2025 {
         ) {
 
             System.out.println("Servidor: " + lectorServidor.readLine()); // Bienvenida
-            String opcionLogin = teclado.readLine();
-            escritor.println(opcionLogin);
 
-            System.out.println("Servidor: " + lectorServidor.readLine()); // Usuario
+            String opcionLogin;
+            // Bucle de validación para la opción inicial
+            while (true) {
+                System.out.print("Elige una opción: ");
+                opcionLogin = teclado.readLine();
+                if ("1".equals(opcionLogin) || "2".equals(opcionLogin)) {
+                    escritor.println(opcionLogin);
+                    break;
+                } else {
+                    System.out.println("Opción no válida. Por favor, elige [1] o [2].");
+                }
+            }
+
+            System.out.println("Servidor: " + lectorServidor.readLine()); // Solicitud de Usuario
             String usuario = teclado.readLine();
             escritor.println(usuario);
 
-            System.out.println("Servidor: " + lectorServidor.readLine()); // Contraseña
+            System.out.println("Servidor: " + lectorServidor.readLine()); // Solicitud de Contraseña
             String contrasena = teclado.readLine();
             escritor.println(contrasena);
 
@@ -33,9 +44,7 @@ public class Cliente2025 {
                 return;
             }
 
-            // Mostrar menú inicial del servidor
-            System.out.println("Servidor: " + lectorServidor.readLine());
-
+            System.out.println("Servidor: " + lectorServidor.readLine()); // Mostrar menú inicial
             String opcionMenu;
             while (true) {
                 opcionMenu = teclado.readLine();
@@ -47,12 +56,12 @@ public class Cliente2025 {
                 escritor.println(opcionMenu);
 
                 switch (opcionMenu) {
-                    case "1": // Juego
+                    case "1":
                         System.out.println("Servidor: " + lectorServidor.readLine());
                         jugar(lectorServidor, teclado, escritor);
                         break;
 
-                    case "2": // Enviar mensaje
+                    case "2":
                         System.out.println("Servidor: " + lectorServidor.readLine());
                         String destinatario = teclado.readLine();
                         escritor.println(destinatario);
@@ -67,7 +76,7 @@ public class Cliente2025 {
                         }
                         break;
 
-                    case "3": // Leer mensajes
+                    case "3":
                         while (true) {
                             String linea = lectorServidor.readLine();
                             if (linea == null || linea.equals("FIN_PAGINA")) {
@@ -87,12 +96,12 @@ public class Cliente2025 {
                         }
                         break;
 
-                    case "4": // Cerrar sesión
+                    case "4":
                         System.out.println("Desconectando del servidor...");
                         return;
 
-                    case "5": // Eliminar mensaje recibido
-                    case "6": // Eliminar mensaje enviado
+                    case "5":
+                    case "6":
                         while (true) {
                             String linea = lectorServidor.readLine();
                             if (linea == null) break;
@@ -106,15 +115,14 @@ public class Cliente2025 {
                                 if (eleccion.equalsIgnoreCase("V")) {
                                     break;
                                 } else {
-                                    // Si la opción no es 'V', el servidor enviará un mensaje de respuesta (éxito, error, etc.)
                                     String respuestaServidor = lectorServidor.readLine();
                                     System.out.println("Servidor: " + respuestaServidor);
                                     if (!respuestaServidor.contains("Página")) {
-                                        break; // Si se intentó eliminar, se sale del bucle de paginación.
+                                        break;
                                     }
                                 }
                             } else if (linea.contains("No tienes mensajes")) {
-                                break; // Si no hay mensajes, el bucle termina.
+                                break;
                             }
                         }
                         break;
