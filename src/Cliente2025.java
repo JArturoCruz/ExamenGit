@@ -47,7 +47,7 @@ public class Cliente2025 {
             String opcionMenu;
             while (true) {
                 opcionMenu = teclado.readLine();
-                if (!opcionMenu.matches("[1-7]")) {
+                if (!opcionMenu.matches("[1-8]")) {
                     System.out.println("Opción no válida. Inténtalo de nuevo.");
                     continue;
                 }
@@ -146,6 +146,23 @@ public class Cliente2025 {
                                 break;
                             }
                             System.out.println("Servidor: " + linea);
+                        }
+                        break;
+                    case "8":
+                        // Lee y muestra la solicitud del servidor (e.g., "Escribe el usuario a...")
+                        String promptBloqueo = lectorServidor.readLine();
+                        System.out.println("Servidor: " + promptBloqueo);
+                        String usuarioBloquear = teclado.readLine();
+                        escritor.println(usuarioBloquear);
+                        // Lee y muestra la respuesta del servidor (éxito, error, o siguiente prompt)
+                        String respuestaBloqueo = lectorServidor.readLine();
+                        System.out.println("Servidor: " + respuestaBloqueo);
+
+                        if (respuestaBloqueo.contains("¿Quieres")) {
+                            String opcion = teclado.readLine();
+                            escritor.println(opcion);
+                            String resultado = lectorServidor.readLine();
+                            System.out.println("Servidor: " + resultado);
                         }
                         break;
                 }

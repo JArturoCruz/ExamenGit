@@ -7,6 +7,7 @@ public class Servidor2025 {
 
     private static final String ARCHIVO_USUARIOS = "usuarios.txt";
     private static final String ARCHIVO_MENSAJES = "mensajes.txt";
+    private static final String ARCHIVO_BLOQUEOS = "bloqueos.txt";
 
     public static void main(String[] args) {
         try {
@@ -75,7 +76,7 @@ public class Servidor2025 {
                 return;
             }
 
-            escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios");
+            escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios | [8] Bloquear/Desbloquear");
 
             String opcionMenu;
             while ((opcionMenu = lector.readLine()) != null) {
@@ -104,12 +105,14 @@ public class Servidor2025 {
                     case "7":
                         mostrarUsuariosRegistrados(escritor);
                         break;
+                    case "8":
+                        bloquearDesbloquearUsuario(usuarioAutenticado, lector, escritor);
+                        break;
                     default:
                         escritor.println("Opción de menú no válida.");
                         break;
                 }
-
-                escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios");
+                escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios | [8] Bloquear/Desbloquear");
             }
 
         } catch (IOException e) {
@@ -131,7 +134,6 @@ public class Servidor2025 {
 
     private static void jugarAdivinarNumero(BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("¡Bienvenido al juego de adivinar! Elige un número del 1 al 10. Solo tienes 3 intentos.");
-
         Random random = new Random();
         int numeroSecreto = random.nextInt(10) + 1;
         int intentosTotales = 3;
@@ -189,6 +191,11 @@ public class Servidor2025 {
             return;
         }
 
+        if (estaBloqueado(remitente, destinatario)) {
+            escritor.println("Error: No puedes enviar un mensaje a '" + destinatario + "' porque lo has bloqueado.");
+            return;
+        }
+
         escritor.println("Escribe tu mensaje:");
         String mensaje = lector.readLine();
         if (mensaje == null || mensaje.equalsIgnoreCase("V")) {
@@ -240,7 +247,6 @@ public class Servidor2025 {
 
         while (true) {
             escritor.println("--- Mensajes (Página " + paginaActual + " de " + totalPaginas + ") ---");
-
             int inicio = (paginaActual - 1) * mensajesPorPagina;
             int fin = Math.min(inicio + mensajesPorPagina, mensajesRecibidos.size());
 
@@ -434,5 +440,119 @@ public class Servidor2025 {
             }
         }
         escritor.println("FIN_USUARIOS");
+    }
+
+    private static void bloquearDesbloquearUsuario(String usuario, BufferedReader lector, PrintWriter escritor) throws IOException {
+        escritor.println("Escribe el usuario que quieres bloquear o desbloquear, o [V] para volver.");
+        String usuarioATocar = lector.readLine();
+        if (usuarioATocar == null || usuarioATocar.equalsIgnoreCase("V")) {
+            escritor.println("Volviendo al menú principal.");
+            return;
+        }
+
+        if (usuarioATocar.equals(usuario)) {
+            escritor.println("Error: No puedes bloquearte o desbloquearte a ti mismo.");
+            return;
+        }
+
+        if (!verificarUsuarioExiste(usuarioATocar)) {
+            escritor.println("Error: El usuario '" + usuarioATocar + "' no existe.");
+            return;
+        }
+
+        if (estaBloqueado(usuario, usuarioATocar)) {
+            escritor.println("El usuario '" + usuarioATocar + "' está bloqueado. ¿Quieres [1] Desbloquearlo o [2] Volver?");
+            String opcion = lector.readLine();
+            if ("1".equals(opcion)) {
+                gestionarBloqueosArchivo(usuario, usuarioATocar, false);
+                escritor.println("Usuario '" + usuarioATocar + "' desbloqueado exitosamente.");
+            } else {
+                escritor.println("Volviendo al menú principal.");
+            }
+        } else {
+            escritor.println("El usuario '" + usuarioATocar + "' no está bloqueado. ¿Quieres [1] Bloquearlo o [2] Volver?");
+            String opcion = lector.readLine();
+            if ("1".equals(opcion)) {
+                gestionarBloqueosArchivo(usuario, usuarioATocar, true);
+                escritor.println("Usuario '" + usuarioATocar + "' bloqueado exitosamente.");
+            } else {
+                escritor.println("Volviendo al menú principal.");
+            }
+        }
+    }
+
+    private static boolean estaBloqueado(String usuario, String bloqueado) throws IOException {
+        File archivo = new File(ARCHIVO_BLOQUEOS);
+        if (!archivo.exists()) return false;
+
+        try (BufferedReader lector = new BufferedReader(new FileReader(archivo))) {
+            String linea;
+            while ((linea = lector.readLine()) != null) {
+                String[] partes = linea.split(":");
+                if (partes.length > 1 && partes[0].equals(usuario)) {
+                    String[] bloqueados = partes[1].split(",");
+                    for (String b : bloqueados) {
+                        if (b.equals(bloqueado)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static void gestionarBloqueosArchivo(String usuario, String usuarioCambio, boolean bloquear) throws IOException {
+        synchronized (Servidor2025.class) {
+            List<String> lineas = new ArrayList<>();
+            File archivo = new File(ARCHIVO_BLOQUEOS);
+            if (archivo.exists()) {
+                try (BufferedReader lector = new BufferedReader(new FileReader(archivo))) {
+                    String linea;
+                    while ((linea = lector.readLine()) != null) {
+                        lineas.add(linea);
+                    }
+                }
+            }
+
+            int indiceUsuario = -1;
+            for (int i = 0; i < lineas.size(); i++) {
+                if (lineas.get(i).startsWith(usuario + ":")) {
+                    indiceUsuario = i;
+                    break;
+                }
+            }
+
+            if (bloquear) {
+                if (indiceUsuario != -1) {
+                    String lineaActual = lineas.get(indiceUsuario);
+                    if (!lineaActual.contains(usuarioCambio)) {
+                        lineas.set(indiceUsuario, lineaActual + "," + usuarioCambio);
+                    }
+                } else {
+                    lineas.add(usuario + ":" + usuarioCambio);
+                }
+            } else { // Desbloquear
+                if (indiceUsuario != -1) {
+                    String lineaActual = lineas.get(indiceUsuario);
+                    String[] bloqueados = lineaActual.split(":")[1].split(",");
+                    List<String> listaBloqueados = new ArrayList<>(Arrays.asList(bloqueados));
+                    listaBloqueados.remove(usuarioCambio);
+                    String nuevaLinea = usuario + ":" + String.join(",", listaBloqueados);
+                    if (listaBloqueados.isEmpty()) {
+                        lineas.remove(indiceUsuario);
+                    } else {
+                        lineas.set(indiceUsuario, nuevaLinea);
+                    }
+                }
+            }
+
+            try (BufferedWriter escritor = new BufferedWriter(new FileWriter(archivo))) {
+                for (String linea : lineas) {
+                    escritor.write(linea);
+                    escritor.newLine();
+                }
+            }
+        }
     }
 }
