@@ -90,7 +90,7 @@ public class Servidor2025 {
                         enviarMensaje(usuarioAutenticado, lector, escritor);
                         break;
                     case "3":
-                        leerMensajes(usuarioAutenticado, escritor, lector);
+                        manejarLecturaMensajes(usuarioAutenticado, lector, escritor);
                         break;
                     case "4":
                         System.out.println("Cliente " + usuarioAutenticado + " ha cerrado sesión.");
@@ -219,7 +219,24 @@ public class Servidor2025 {
             }
         }
     }
-    private static void leerMensajes(String usuario, PrintWriter escritor, BufferedReader lector) throws IOException {
+
+    private static void manejarLecturaMensajes(String usuario, BufferedReader lector, PrintWriter escritor) throws IOException {
+        escritor.println("Deseas ver [1] Todos tus mensajes o [2] Mensajes de un usuario específico?");
+        String opcionLectura = lector.readLine();
+
+        if ("1".equals(opcionLectura)) {
+            leerMensajesDesdeArchivo(usuario, null, lector, escritor);
+        } else if ("2".equals(opcionLectura)) {
+            escritor.println("Escribe el nombre del usuario del que quieres leer los mensajes:");
+            String filtroUsuario = lector.readLine();
+            if (filtroUsuario == null) return;
+            leerMensajesDesdeArchivo(usuario, filtroUsuario, lector, escritor);
+        } else {
+            escritor.println("Opción de lectura no válida.");
+        }
+    }
+
+    private static void leerMensajesDesdeArchivo(String usuario, String filtroUsuario, BufferedReader lector, PrintWriter escritor) throws IOException {
         List<String> mensajesRecibidos = new ArrayList<>();
         File archivo = new File(ARCHIVO_MENSAJES);
 
@@ -228,7 +245,7 @@ public class Servidor2025 {
                 String linea;
                 while ((linea = reader.readLine()) != null) {
                     String[] partes = linea.split(":", 3);
-                    if (partes.length == 3 && partes[0].equals(usuario)) {
+                    if (partes.length == 3 && partes[0].equals(usuario) && (filtroUsuario == null || partes[1].equals(filtroUsuario))) {
                         mensajesRecibidos.add(linea);
                     }
                 }

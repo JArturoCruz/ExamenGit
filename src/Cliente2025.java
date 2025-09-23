@@ -88,8 +88,20 @@ public class Cliente2025 {
                             System.out.println("Servidor: " + lectorServidor.readLine());
                         }
                         break;
-
                     case "3":
+                        // Nueva lógica para leer mensajes con opciones de filtrado
+                        String opcionLectura = lectorServidor.readLine();
+                        System.out.println("Servidor: " + opcionLectura);
+                        String eleccionLectura = teclado.readLine();
+                        escritor.println(eleccionLectura);
+
+                        if ("2".equals(eleccionLectura)) {
+                            String promptUsuario = lectorServidor.readLine();
+                            System.out.println("Servidor: " + promptUsuario);
+                            String usuarioFiltro = teclado.readLine();
+                            escritor.println(usuarioFiltro);
+                        }
+
                         while (true) {
                             String linea = lectorServidor.readLine();
                             if (linea == null || linea.equals("FIN_PAGINA")) {
@@ -108,7 +120,6 @@ public class Cliente2025 {
                             }
                         }
                         break;
-
                     case "4":
                         System.out.println("Desconectando del servidor...");
                         return;
