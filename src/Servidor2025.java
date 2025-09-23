@@ -191,8 +191,9 @@ public class Servidor2025 {
             return;
         }
 
-        if (estaBloqueado(remitente, destinatario)) {
-            escritor.println("Error: No puedes enviar un mensaje a '" + destinatario + "' porque lo has bloqueado.");
+        // Nueva lógica para un bloqueo bidireccional
+        if (estaBloqueado(remitente, destinatario) || estaBloqueado(destinatario, remitente)) {
+            escritor.println("Error: No puedes enviar un mensaje a este usuario debido a una restricción de bloqueo.");
             return;
         }
 
@@ -218,7 +219,6 @@ public class Servidor2025 {
             }
         }
     }
-
     private static void leerMensajes(String usuario, PrintWriter escritor, BufferedReader lector) throws IOException {
         List<String> mensajesRecibidos = new ArrayList<>();
         File archivo = new File(ARCHIVO_MENSAJES);

@@ -22,3 +22,4 @@ Arturo2:Arturo:hola
 Arturo:ArturoPop:hola como estas
 Arturo2:Arturo:hola
 Arturo:ArturoPop:hola
+Arturo2:ArturoPop:hola qhaces
