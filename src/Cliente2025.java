@@ -47,7 +47,7 @@ public class Cliente2025 {
             String opcionMenu;
             while (true) {
                 opcionMenu = teclado.readLine();
-                if (!opcionMenu.matches("[1-6]")) {
+                if (!opcionMenu.matches("[1-7]")) {
                     System.out.println("Opción no válida. Inténtalo de nuevo.");
                     continue;
                 }
@@ -137,6 +137,15 @@ public class Cliente2025 {
                             } else if (linea.contains("No tienes mensajes")) {
                                 break;
                             }
+                        }
+                        break;
+                    case "7":
+                        while (true) {
+                            String linea = lectorServidor.readLine();
+                            if (linea == null || linea.equals("FIN_USUARIOS")) {
+                                break;
+                            }
+                            System.out.println("Servidor: " + linea);
                         }
                         break;
                 }

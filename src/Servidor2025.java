@@ -75,7 +75,7 @@ public class Servidor2025 {
                 return;
             }
 
-            escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado");
+            escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios");
 
             String opcionMenu;
             while ((opcionMenu = lector.readLine()) != null) {
@@ -101,12 +101,15 @@ public class Servidor2025 {
                     case "6":
                         eliminarMensajes(usuarioAutenticado, lector, escritor, "enviados");
                         break;
+                    case "7":
+                        mostrarUsuariosRegistrados(escritor);
+                        break;
                     default:
                         escritor.println("Opción de menú no válida.");
                         break;
                 }
 
-                escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado");
+                escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios");
             }
 
         } catch (IOException e) {
