@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
+import java.util.regex.Pattern;
 
 public class Cliente2025 {
 
@@ -62,7 +63,7 @@ public class Cliente2025 {
             String opcionMenu;
             while (true) {
                 opcionMenu = teclado.readLine();
-                if (!opcionMenu.matches("1|2|3|4|5|6|7|8|9|10|11")) {
+                if (!Pattern.matches("1|2|3|4|5|6|7|8|9|10|11|12", opcionMenu)) {
                     System.out.println("Opción no válida. Inténtalo de nuevo.");
                     continue;
                 }
@@ -205,43 +206,24 @@ public class Cliente2025 {
                         }
                         break;
                     case "10":
-                        System.out.println("Servidor: " + lectorServidor.readLine()); // Pide usuario destino
-                        String usuarioDestino = teclado.readLine();
-                        escritor.println(usuarioDestino);
+                        System.out.println("Servidor: " + lectorServidor.readLine());
+                        String nombreArchivoCrear = teclado.readLine();
+                        escritor.println(nombreArchivoCrear);
 
-                        System.out.println("Servidor: " + lectorServidor.readLine()); // Pide nombre de archivo local
-                        String nombreArchivo = teclado.readLine();
+                        String respuestaCreacion = lectorServidor.readLine();
+                        System.out.println("Servidor: " + respuestaCreacion);
 
-                        // Verificar si el archivo local existe antes de iniciar la subida
-                        File archivoLocal = new File(nombreArchivo);
-                        if (!archivoLocal.exists() || !archivoLocal.isFile()) {
-                            System.out.println("Error: El archivo '" + nombreArchivo + "' no se encontró en tu directorio local.");
-                            escritor.println("FIN_TRANSFERENCIA_ARCHIVO");
-                            break;
-                        }
-
-                        escritor.println(nombreArchivo);
-
-                        // Espera la confirmación del servidor para empezar la subida
-                        String respuesta = lectorServidor.readLine();
-                        System.out.println("Servidor: " + respuesta);
-
-                        if (respuesta.equals("LISTO_PARA_RECIBIR")) {
-                            try (BufferedReader lectorArchivo = new BufferedReader(new FileReader(archivoLocal))) {
-                                String linea;
-                                while ((linea = lectorArchivo.readLine()) != null) {
+                        if (respuestaCreacion.startsWith("Escribe el contenido")) {
+                            String linea;
+                            while ((linea = teclado.readLine()) != null) {
+                                if (linea.equals("FIN_CONTENIDO")) {
                                     escritor.println(linea);
+                                    break;
                                 }
-                                escritor.println("FIN_TRANSFERENCIA_ARCHIVO");
+                                escritor.println(linea);
                             }
-                        }
-                        // Espera la respuesta final del servidor (éxito o fallo)
-                        while (true) {
-                            String linea = lectorServidor.readLine();
-                            if (linea == null || linea.equals("FIN_TRANSFERENCIA_ARCHIVO")) {
-                                break;
-                            }
-                            System.out.println("Servidor: " + linea);
+                            String respuestaFinal = lectorServidor.readLine();
+                            System.out.println("Servidor: " + respuestaFinal);
                         }
                         break;
                     case "11":
@@ -264,6 +246,8 @@ public class Cliente2025 {
                                         System.out.println("Servidor: " + linea);
                                     } else {
                                         System.out.println("Archivo '" + archivoADescargar + "' descargado y guardado en '" + rutaCompletaDescarga + "'.");
+                                        File archivoDescargado = new File(rutaCompletaDescarga);
+
                                     }
                                     break;
                                 }
@@ -272,6 +256,18 @@ public class Cliente2025 {
                         } catch (IOException e) {
                             System.out.println("Error al guardar el archivo descargado.");
                         }
+                        break;
+                    case "12":
+                        System.out.println("Servidor: " + lectorServidor.readLine());
+                        String usuarioDestinoInterno = teclado.readLine();
+                        escritor.println(usuarioDestinoInterno);
+
+                        System.out.println("Servidor: " + lectorServidor.readLine());
+                        String nombreArchivoInterno = teclado.readLine();
+                        escritor.println(nombreArchivoInterno);
+
+                        String respuestaInterna = lectorServidor.readLine();
+                        System.out.println("Servidor: " + respuestaInterna);
                         break;
                 }
 

@@ -80,7 +80,7 @@ public class Servidor2025 {
                 return;
             }
 
-            escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios | [8] Bloquear/Desbloquear | [9] Listar archivos | [10] Subir archivo | [11] Descargar archivo");
+            escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios | [8] Bloquear/Desbloquear | [9] Listar archivos | [10] Crear archivo | [11] Descargar archivo | [12] Transferir archivo entre usuarios");
 
             String opcionMenu;
             while ((opcionMenu = lector.readLine()) != null) {
@@ -116,16 +116,19 @@ public class Servidor2025 {
                         listarArchivosDeUsuario(lector, escritor);
                         break;
                     case "10":
-                        subirArchivo(lector, escritor);
+                        crearArchivoRemoto(usuarioAutenticado, lector, escritor);
                         break;
-                    case "11": // Nueva funcionalidad de descarga
+                    case "11":
                         descargarArchivo(lector, escritor);
+                        break;
+                    case "12":
+                        transferirArchivoInterno(usuarioAutenticado, lector, escritor);
                         break;
                     default:
                         escritor.println("Opción de menú no válida.");
                         break;
                 }
-                escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios | [8] Bloquear/Desbloquear | [9] Listar archivos | [10] Subir archivo | [11] Descargar archivo");
+                escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios | [8] Bloquear/Desbloquear | [9] Listar archivos | [10] Crear archivo | [11] Descargar archivo | [12] Transferir archivo entre usuarios");
             }
 
         } catch (IOException e) {
@@ -614,57 +617,37 @@ public class Servidor2025 {
         escritor.println("FIN_LISTA_ARCHIVOS");
     }
 
-    private static void subirArchivo(BufferedReader lector, PrintWriter escritor) throws IOException {
-        escritor.println("Escribe el nombre del usuario al que quieres enviar el archivo:");
-        String usuarioDestino = lector.readLine();
+    private static void crearArchivoRemoto(String usuario, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("Escribe el nombre del archivo de texto (ej: archivo.txt):");
         String nombreArchivo = lector.readLine();
 
-        if (!verificarUsuarioExiste(usuarioDestino)) {
-            escritor.println("Error: El usuario de destino no existe.");
-            escritor.println("FIN_TRANSFERENCIA_ARCHIVO");
+        if (!nombreArchivo.toLowerCase().endsWith(".txt")) {
+            escritor.println("Error: El nombre del archivo debe terminar con .txt");
             return;
         }
 
-        File archivoDestino = new File(DIRECTORIO_RAIZ + File.separator + usuarioDestino + File.separator + nombreArchivo);
+        File archivoDestino = new File(DIRECTORIO_RAIZ + File.separator + usuario + File.separator + nombreArchivo);
 
         if (archivoDestino.exists()) {
-            escritor.println("Error: Ya existe un archivo con ese nombre en la carpeta del usuario destino.");
-            escritor.println("FIN_TRANSFERENCIA_ARCHIVO");
+            escritor.println("Error: Ya existe un archivo con ese nombre en tu carpeta.");
             return;
         }
 
-        if (!nombreArchivo.toLowerCase().endsWith(".txt")) {
-            escritor.println("Error: Solo se permiten archivos de texto (.txt).");
-            escritor.println("FIN_TRANSFERENCIA_ARCHIVO");
-            return;
-        }
-
-        // El servidor se prepara para recibir el archivo
-        escritor.println("LISTO_PARA_RECIBIR");
+        escritor.println("Escribe el contenido del archivo. Escribe 'FIN_CONTENIDO' en una nueva linea para terminar.");
 
         try (BufferedWriter escritorArchivo = new BufferedWriter(new FileWriter(archivoDestino))) {
             String linea;
-            boolean archivoRecibido = false;
-            while ((linea = lector.readLine()) != null && !linea.equals("FIN_TRANSFERENCIA_ARCHIVO")) {
+            while ((linea = lector.readLine()) != null && !linea.equals("FIN_CONTENIDO")) {
                 escritorArchivo.write(linea);
                 escritorArchivo.newLine();
-                archivoRecibido = true;
             }
-            if (archivoRecibido) {
-                escritor.println("Archivo '" + nombreArchivo + "' subido exitosamente a la carpeta de '" + usuarioDestino + "'.");
-            } else {
-                escritor.println("Error: La transferencia del archivo no se completó.");
-            }
+            escritor.println("Archivo '" + nombreArchivo + "' creado exitosamente.");
         } catch (IOException e) {
-            escritor.println("Error al guardar el archivo en el servidor.");
+            escritor.println("Error al crear el archivo en el servidor.");
             e.printStackTrace();
-        } finally {
-            escritor.println("FIN_TRANSFERENCIA_ARCHIVO");
         }
     }
 
-    // Nuevo método para descargar un archivo del servidor
     private static void descargarArchivo(BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("Escribe el nombre del usuario de donde quieres descargar el archivo:");
         String usuarioObjetivo = lector.readLine();
@@ -688,6 +671,46 @@ public class Servidor2025 {
         } catch (IOException e) {
             escritor.println("Error al leer el archivo en el servidor.");
             escritor.println("FIN_DESCARGA_ARCHIVO");
+        }
+    }
+
+    private static void transferirArchivoInterno(String remitente, BufferedReader lector, PrintWriter escritor) throws IOException {
+        escritor.println("Escribe el nombre del usuario al que quieres transferir el archivo:");
+        String usuarioDestino = lector.readLine();
+        escritor.println("Escribe el nombre del archivo de tu carpeta que quieres transferir:");
+        String nombreArchivo = lector.readLine();
+
+        if (usuarioDestino.equals(remitente)) {
+            escritor.println("Error: No puedes transferir un archivo a tu propia carpeta.");
+            return;
+        }
+
+        File archivoFuente = new File(DIRECTORIO_RAIZ + File.separator + remitente + File.separator + nombreArchivo);
+        File archivoDestino = new File(DIRECTORIO_RAIZ + File.separator + usuarioDestino + File.separator + nombreArchivo);
+
+        if (!archivoFuente.exists() || !archivoFuente.isFile() || !nombreArchivo.toLowerCase().endsWith(".txt")) {
+            escritor.println("Error: El archivo no existe o no es un archivo de texto en tu carpeta.");
+            return;
+        }
+
+        if (archivoDestino.exists()) {
+            escritor.println("Error: El usuario de destino ya tiene un archivo con ese nombre.");
+            return;
+        }
+
+        try (
+                InputStream in = new FileInputStream(archivoFuente);
+                OutputStream out = new FileOutputStream(archivoDestino)
+        ) {
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = in.read(buffer)) > 0) {
+                out.write(buffer, 0, length);
+            }
+            escritor.println("Archivo '" + nombreArchivo + "' transferido exitosamente a la carpeta de '" + usuarioDestino + "'.");
+        } catch (IOException e) {
+            escritor.println("Error al transferir el archivo.");
+            e.printStackTrace();
         }
     }
 }
