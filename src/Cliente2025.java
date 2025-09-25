@@ -3,9 +3,20 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 
 public class Cliente2025 {
+
+    private static final String DIRECTORIO_CLIENTE = "cliente_archivos";
+    private static String usuarioAutenticado;
+
     public static void main(String[] args) {
+        // Crea el directorio raíz para los archivos del cliente si no existe
+        new File(DIRECTORIO_CLIENTE).mkdirs();
+
         try (
                 Socket socket = new Socket("localhost", 8081);
                 PrintWriter escritor = new PrintWriter(socket.getOutputStream(), true);
@@ -43,11 +54,15 @@ public class Cliente2025 {
                 return;
             }
 
+            // Guarda el nombre de usuario autenticado y crea su carpeta local
+            usuarioAutenticado = usuario;
+            new File(DIRECTORIO_CLIENTE + File.separator + usuarioAutenticado).mkdirs();
+
             System.out.println("Servidor: " + lectorServidor.readLine());
             String opcionMenu;
             while (true) {
                 opcionMenu = teclado.readLine();
-                if (!opcionMenu.matches("[1-8]")) {
+                if (!opcionMenu.matches("1|2|3|4|5|6|7|8|9|10|11")) {
                     System.out.println("Opción no válida. Inténtalo de nuevo.");
                     continue;
                 }
@@ -174,6 +189,88 @@ public class Cliente2025 {
                             escritor.println(opcion);
                             String resultado = lectorServidor.readLine();
                             System.out.println("Servidor: " + resultado);
+                        }
+                        break;
+                    case "9":
+                        System.out.println("Servidor: " + lectorServidor.readLine());
+                        String usuarioListar = teclado.readLine();
+                        escritor.println(usuarioListar);
+
+                        while (true) {
+                            String linea = lectorServidor.readLine();
+                            if (linea == null || linea.equals("FIN_LISTA_ARCHIVOS")) {
+                                break;
+                            }
+                            System.out.println("Servidor: " + linea);
+                        }
+                        break;
+                    case "10":
+                        System.out.println("Servidor: " + lectorServidor.readLine()); // Pide usuario destino
+                        String usuarioDestino = teclado.readLine();
+                        escritor.println(usuarioDestino);
+
+                        System.out.println("Servidor: " + lectorServidor.readLine()); // Pide nombre de archivo local
+                        String nombreArchivo = teclado.readLine();
+
+                        // Verificar si el archivo local existe antes de iniciar la subida
+                        File archivoLocal = new File(nombreArchivo);
+                        if (!archivoLocal.exists() || !archivoLocal.isFile()) {
+                            System.out.println("Error: El archivo '" + nombreArchivo + "' no se encontró en tu directorio local.");
+                            escritor.println("FIN_TRANSFERENCIA_ARCHIVO");
+                            break;
+                        }
+
+                        escritor.println(nombreArchivo);
+
+                        // Espera la confirmación del servidor para empezar la subida
+                        String respuesta = lectorServidor.readLine();
+                        System.out.println("Servidor: " + respuesta);
+
+                        if (respuesta.equals("LISTO_PARA_RECIBIR")) {
+                            try (BufferedReader lectorArchivo = new BufferedReader(new FileReader(archivoLocal))) {
+                                String linea;
+                                while ((linea = lectorArchivo.readLine()) != null) {
+                                    escritor.println(linea);
+                                }
+                                escritor.println("FIN_TRANSFERENCIA_ARCHIVO");
+                            }
+                        }
+                        // Espera la respuesta final del servidor (éxito o fallo)
+                        while (true) {
+                            String linea = lectorServidor.readLine();
+                            if (linea == null || linea.equals("FIN_TRANSFERENCIA_ARCHIVO")) {
+                                break;
+                            }
+                            System.out.println("Servidor: " + linea);
+                        }
+                        break;
+                    case "11":
+                        System.out.println("Servidor: " + lectorServidor.readLine()); // Pide el usuario de origen
+                        String usuarioOrigen = teclado.readLine();
+                        escritor.println(usuarioOrigen);
+
+                        System.out.println("Servidor: " + lectorServidor.readLine()); // Pide el nombre del archivo
+                        String archivoADescargar = teclado.readLine();
+                        escritor.println(archivoADescargar);
+
+                        // Crea la ruta completa del archivo en el directorio del cliente
+                        String rutaCompletaDescarga = DIRECTORIO_CLIENTE + File.separator + usuarioAutenticado + File.separator + "descargado_" + archivoADescargar;
+
+                        try (FileWriter escritorArchivo = new FileWriter(rutaCompletaDescarga)) {
+                            while (true) {
+                                String linea = lectorServidor.readLine();
+                                if (linea == null || linea.equals("FIN_DESCARGA_ARCHIVO")) {
+                                    if (linea != null && linea.startsWith("Error:")) {
+                                        System.out.println("Servidor: " + linea);
+                                    } else {
+                                        System.out.println("Archivo '" + archivoADescargar + "' descargado y guardado en '" + rutaCompletaDescarga + "'.");
+                                    }
+                                    break;
+                                }
+                                escritorArchivo.write(linea + System.lineSeparator());
+                            }
+                        } catch (IOException e) {
+                            System.out.println("Error al guardar el archivo descargado.");
                         }
                         break;
                 }
