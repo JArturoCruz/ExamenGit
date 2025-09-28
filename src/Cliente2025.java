@@ -95,10 +95,10 @@ public class Cliente2025 {
 
                         System.out.println(lineaSol);
 
-                        if (lineaSol.contains("¿Permitir descarga?")) {
+                        if (lineaSol.contains("¿Permitir descarga/listado?")) { // Clave para detectar el prompt
                             String opcion = teclado.readLine();
                             escritor.println(opcion);
-                            System.out.println("Servidor: " + lectorServidor.readLine()); // Lee el mensaje de confirmación/denegación
+                            // *** CORRECCIÓN CLAVE: Se eliminó la línea de lectura redundante que causaba el bloqueo ***
                         }
                     }
                 }
