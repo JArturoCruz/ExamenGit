@@ -55,9 +55,36 @@ public class Cliente2025 {
                 return;
             }
 
-            // Guarda el nombre de usuario autenticado y crea su carpeta local
             usuarioAutenticado = usuario;
             new File(DIRECTORIO_CLIENTE + File.separator + usuarioAutenticado).mkdirs();
+
+            String mensajeInicial = lectorServidor.readLine();
+            if (mensajeInicial.contains("SOLICITUDES DE DESCARGA PENDIENTES") || mensajeInicial.startsWith("INFO:")) {
+                System.out.println("\n" + mensajeInicial);
+
+                if(mensajeInicial.contains("SOLICITUDES DE DESCARGA PENDIENTES")) {
+                    System.out.println("(Presiona Enter para revisar las solicitudes)");
+
+
+                    teclado.readLine();
+                    escritor.println("ENTER_PRESIONADO");
+
+                    while (true) {
+                        String linea = lectorServidor.readLine();
+                        if (linea == null || linea.startsWith("--- Fin de solicitudes ---")) break;
+
+                        System.out.println(linea);
+
+                        if (linea.contains("¿Permitir descarga?")) {
+                            String opcion = teclado.readLine();
+                            escritor.println(opcion);
+                            System.out.println("Servidor: " + lectorServidor.readLine()); // Lee el mensaje de confirmación/denegación
+                        }
+                    }
+                }
+            } else {
+                System.out.println(mensajeInicial);
+            }
 
             System.out.println("Servidor: " + lectorServidor.readLine());
             String opcionMenu;
@@ -235,10 +262,26 @@ public class Cliente2025 {
                         String archivoADescargar = teclado.readLine();
                         escritor.println(archivoADescargar);
 
-                        // Crea la ruta completa del archivo en el directorio del cliente
+                        // Recibe la respuesta del servidor (Permiso, Error, o primera línea de contenido)
+                        String primeraRespuesta = lectorServidor.readLine();
+                        System.out.println("Servidor: " + primeraRespuesta);
+
+                        if (primeraRespuesta.contains("Permiso no concedido") || primeraRespuesta.startsWith("Error:")) {
+                            // Si el permiso no fue concedido o hubo un error, espera el FIN_DESCARGA_ARCHIVO del servidor
+                            while (true) {
+                                String linea = lectorServidor.readLine();
+                                if (linea == null || linea.equals("FIN_DESCARGA_ARCHIVO")) break;
+                                System.out.println("Servidor: " + linea);
+                            }
+                            break;
+                        }
+
+                        // Procede con la descarga si el permiso está concedido (la primera respuesta ya es contenido)
                         String rutaCompletaDescarga = DIRECTORIO_CLIENTE + File.separator + usuarioAutenticado + File.separator + "descargado_" + archivoADescargar;
 
                         try (FileWriter escritorArchivo = new FileWriter(rutaCompletaDescarga)) {
+                            escritorArchivo.write(primeraRespuesta + System.lineSeparator()); // Escribe la primera línea de contenido
+
                             while (true) {
                                 String linea = lectorServidor.readLine();
                                 if (linea == null || linea.equals("FIN_DESCARGA_ARCHIVO")) {
@@ -247,7 +290,9 @@ public class Cliente2025 {
                                     } else {
                                         System.out.println("Archivo '" + archivoADescargar + "' descargado y guardado en '" + rutaCompletaDescarga + "'.");
                                         File archivoDescargado = new File(rutaCompletaDescarga);
-
+                                        if (archivoDescargado.length() == 0) {
+                                            System.out.println("[Advertencia]: El archivo descargado está vacío. Es posible que el archivo en el servidor estuviera vacío.");
+                                        }
                                     }
                                     break;
                                 }

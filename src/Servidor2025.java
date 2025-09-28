@@ -2,16 +2,21 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 public class Servidor2025 {
 
     private static final String ARCHIVO_USUARIOS = "usuarios.txt";
     private static final String ARCHIVO_MENSAJES = "mensajes.txt";
     private static final String ARCHIVO_BLOQUEOS = "bloqueos.txt";
+    private static final String ARCHIVO_SOLICITUDES = "solicitudes.txt";
     private static final String DIRECTORIO_RAIZ = "servidor_archivos";
 
+
+    private static final Map<String, Map<String, String>> PERMISOS_CONCEDIDOS = new ConcurrentHashMap<>();
+
     public static void main(String[] args) {
-        // Asegúrate de que el directorio raíz de archivos exista
         new File(DIRECTORIO_RAIZ).mkdirs();
 
         try {
@@ -31,14 +36,14 @@ public class Servidor2025 {
     }
 
     private static void manejarCliente(Socket cliente) {
+        String usuarioAutenticado = null;
+
         try (
                 PrintWriter escritor = new PrintWriter(cliente.getOutputStream(), true);
                 BufferedReader lector = new BufferedReader(new InputStreamReader(cliente.getInputStream()))
         ) {
             escritor.println("Bienvenido. ¿Deseas [1] Iniciar sesión, [2] Registrarte ");
             String opcion = lector.readLine();
-
-            String usuarioAutenticado = null;
 
             if ("1".equals(opcion)) {
                 escritor.println("Usuario:");
@@ -80,6 +85,9 @@ public class Servidor2025 {
                 return;
             }
 
+            // Manejar y mostrar solicitudes pendientes al iniciar sesión
+            manejarSolicitudesPendientes(usuarioAutenticado, lector, escritor);
+
             escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios | [8] Bloquear/Desbloquear | [9] Listar archivos | [10] Crear archivo | [11] Descargar archivo | [12] Transferir archivo entre usuarios");
 
             String opcionMenu;
@@ -119,7 +127,7 @@ public class Servidor2025 {
                         crearArchivoRemoto(usuarioAutenticado, lector, escritor);
                         break;
                     case "11":
-                        descargarArchivo(lector, escritor);
+                        descargarArchivo(usuarioAutenticado, lector, escritor);
                         break;
                     case "12":
                         transferirArchivoInterno(usuarioAutenticado, lector, escritor);
@@ -134,6 +142,11 @@ public class Servidor2025 {
         } catch (IOException e) {
             System.out.println("Error con el cliente: " + e.getMessage());
         } finally {
+            // Remueve el permiso solo si el usuario se autenticó exitosamente.
+            if (usuarioAutenticado != null) {
+                PERMISOS_CONCEDIDOS.remove(usuarioAutenticado);
+            }
+
             try {
                 if (cliente != null && !cliente.isClosed()) {
                     cliente.close();
@@ -143,6 +156,100 @@ public class Servidor2025 {
             }
         }
     }
+
+    private static void manejarSolicitudesPendientes(String propietario, BufferedReader lector, PrintWriter escritor) throws IOException {
+        List<String> solicitudesActuales = new ArrayList<>();
+        List<String> lineasRestantes = new ArrayList<>();
+        boolean tieneSolicitudes = false;
+
+        // 1. Cargar todas las solicitudes
+        File archivo = new File(ARCHIVO_SOLICITUDES);
+        if (archivo.exists()) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(archivo))) {
+                String linea;
+                while ((linea = reader.readLine()) != null) {
+                    String[] partes = linea.split(":");
+                    if (partes.length == 3 && partes[0].equals(propietario)) {
+                        solicitudesActuales.add(linea);
+                        tieneSolicitudes = true;
+                    } else {
+                        lineasRestantes.add(linea);
+                    }
+                }
+            }
+        }
+
+        if (!tieneSolicitudes) {
+            escritor.println("INFO: No tienes solicitudes de descarga pendientes.");
+            return;
+        }
+
+        escritor.println("--- ¡ATENCIÓN! SOLICITUDES DE DESCARGA PENDIENTES ---");
+        escritor.println("Se encontraron " + solicitudesActuales.size() + " solicitudes. Presiona [Enter] para revisar.");
+
+        lector.readLine();
+
+        for (String solicitud : solicitudesActuales) {
+            String[] partes = solicitud.split(":");
+            String solicitante = partes[1];
+            String archivoSolicitado = partes[2];
+
+            escritor.println("El usuario '" + solicitante + "' solicita descargar tu archivo: " + archivoSolicitado);
+            escritor.println("¿Permitir descarga? [1] Sí / [2] No / [3] Dejar Pendiente");
+            String opcion = lector.readLine();
+
+            if ("1".equals(opcion)) {
+                // Concede el permiso en memoria (temporal)
+                PERMISOS_CONCEDIDOS.computeIfAbsent(propietario, k -> new ConcurrentHashMap<>())
+                        .put(solicitante, archivoSolicitado);
+                escritor.println("Permiso concedido a " + solicitante + ".");
+            } else if ("2".equals(opcion)) {
+                escritor.println("Permiso denegado a " + solicitante + ".");
+            } else {
+                escritor.println("Solicitud de " + solicitante + " marcada como pendiente.");
+                lineasRestantes.add(solicitud); // Vuelve a guardar la solicitud
+            }
+        }
+
+        // 3. Reescribir el archivo solo con las denegadas/pendientes
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(archivo))) {
+            for (String linea : lineasRestantes) {
+                writer.write(linea);
+                writer.newLine();
+            }
+        }
+
+        escritor.println("--- Fin de solicitudes ---");
+    }
+
+    private static synchronized boolean almacenarNuevaSolicitud(String nuevaSolicitud) throws IOException {
+        List<String> lineas = new ArrayList<>();
+        boolean existe = false;
+
+        // Carga y verifica si la solicitud ya existe
+        if (new File(ARCHIVO_SOLICITUDES).exists()) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(ARCHIVO_SOLICITUDES))) {
+                String linea;
+                while ((linea = reader.readLine()) != null) {
+                    if (linea.equals(nuevaSolicitud)) {
+                        existe = true;
+                    }
+                    lineas.add(linea);
+                }
+            }
+        }
+
+        if (existe) return false;
+
+        // Si no existe, la añade
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_SOLICITUDES, true))) {
+            writer.write(nuevaSolicitud);
+            writer.newLine();
+        }
+        return true;
+    }
+
+    // --- MÉTODOS DE LÓGICA DE NEGOCIO ---
 
     private static boolean esContrasenaValida(String contrasena) {
         return contrasena != null && !contrasena.trim().isEmpty() && contrasena.length() >= 8;
@@ -648,7 +755,7 @@ public class Servidor2025 {
         }
     }
 
-    private static void descargarArchivo(BufferedReader lector, PrintWriter escritor) throws IOException {
+    private static void descargarArchivo(String solicitante, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("Escribe el nombre del usuario de donde quieres descargar el archivo:");
         String usuarioObjetivo = lector.readLine();
         escritor.println("Escribe el nombre del archivo de texto (ej: archivo.txt):");
@@ -662,12 +769,32 @@ public class Servidor2025 {
             return;
         }
 
+        boolean permisoConcedido = PERMISOS_CONCEDIDOS.getOrDefault(usuarioObjetivo, Collections.emptyMap())
+                .getOrDefault(solicitante, "").equals(nombreArchivo);
+
+        if (!permisoConcedido) {
+            String nuevaSolicitud = usuarioObjetivo + ":" + solicitante + ":" + nombreArchivo;
+            if (almacenarNuevaSolicitud(nuevaSolicitud)) {
+                escritor.println("Permiso no concedido. Se ha registrado una solicitud a '" + usuarioObjetivo + "'. Deberá esperar a que el usuario se conecte para responder.");
+            } else {
+                escritor.println("Permiso no concedido. Ya existe una solicitud pendiente.");
+            }
+            escritor.println("FIN_DESCARGA_ARCHIVO");
+            return;
+        }
+
+
+        // Si el permiso fue concedido, procede con la descarga
         try (BufferedReader lectorArchivo = new BufferedReader(new FileReader(archivoFuente))) {
             String linea;
             while ((linea = lectorArchivo.readLine()) != null) {
                 escritor.println(linea);
             }
             escritor.println("FIN_DESCARGA_ARCHIVO");
+
+            // Eliminar permiso de la memoria después de usarlo (para que sea de un solo uso)
+            PERMISOS_CONCEDIDOS.getOrDefault(usuarioObjetivo, Collections.emptyMap()).remove(solicitante);
+
         } catch (IOException e) {
             escritor.println("Error al leer el archivo en el servidor.");
             escritor.println("FIN_DESCARGA_ARCHIVO");
