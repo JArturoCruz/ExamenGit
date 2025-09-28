@@ -11,6 +11,7 @@ public class Servidor2025 {
     private static final String ARCHIVO_MENSAJES = "mensajes.txt";
     private static final String ARCHIVO_BLOQUEOS = "bloqueos.txt";
     private static final String ARCHIVO_SOLICITUDES = "solicitudes.txt";
+    private static final String ARCHIVO_DECISIONES = "decisiones_descarga.txt";
     private static final String DIRECTORIO_RAIZ = "servidor_archivos";
 
 
@@ -80,12 +81,16 @@ public class Servidor2025 {
                 escritor.println("Opción no válida");
             }
 
+
             if (usuarioAutenticado == null) {
                 cliente.close();
                 return;
             }
 
-            // Manejar y mostrar solicitudes pendientes al iniciar sesión
+            // --- FLUJO: Notificar decisiones pendientes al Usuario A (CORREGIDO) ---
+            mostrarDecisionesPendientes(usuarioAutenticado, escritor);
+
+            // Manejar y mostrar solicitudes pendientes (del usuario actual, como dueño del archivo)
             manejarSolicitudesPendientes(usuarioAutenticado, lector, escritor);
 
             escritor.println("Menú: [1] Jugar | [2] Enviar mensaje | [3] Leer mensajes | [4] Cerrar sesión | [5] Eliminar mensaje recibido | [6] Eliminar mensaje enviado | [7] Ver usuarios | [8] Bloquear/Desbloquear | [9] Listar archivos | [10] Crear archivo | [11] Descargar archivo | [12] Transferir archivo entre usuarios");
@@ -142,7 +147,6 @@ public class Servidor2025 {
         } catch (IOException e) {
             System.out.println("Error con el cliente: " + e.getMessage());
         } finally {
-            // Remueve el permiso solo si el usuario se autenticó exitosamente.
             if (usuarioAutenticado != null) {
                 PERMISOS_CONCEDIDOS.remove(usuarioAutenticado);
             }
@@ -156,6 +160,62 @@ public class Servidor2025 {
             }
         }
     }
+
+    // --- MÉTODO CORREGIDO: Muestra y transfiere decisiones pendientes a memoria ---
+    private static void mostrarDecisionesPendientes(String usuarioAutenticado, PrintWriter escritor) throws IOException {
+        File archivoDecisiones = new File(ARCHIVO_DECISIONES);
+        if (!archivoDecisiones.exists()) return;
+
+        List<String> lineasRestantes = new ArrayList<>();
+        List<String> notificaciones = new ArrayList<>();
+
+        // 1. Leer el archivo y recopilar notificaciones para el usuario
+        try (BufferedReader reader = new BufferedReader(new FileReader(archivoDecisiones))) {
+            String linea;
+            while ((linea = reader.readLine()) != null) {
+                String[] partes = linea.split(":");
+                if (partes.length == 4 && partes[0].equals(usuarioAutenticado)) {
+                    notificaciones.add(linea);
+                } else {
+                    lineasRestantes.add(linea);
+                }
+            }
+        }
+
+        if (notificaciones.isEmpty()) {
+            return; // No hay nada que notificar
+        }
+
+        // 2. Mostrar las notificaciones al cliente y transferir permisos
+        escritor.println("\n--- 🔔 NOTIFICACIONES PENDIENTES DE DESCARGA ---");
+        for (String notificacion : notificaciones) {
+            String[] partes = notificacion.split(":");
+            String propietario = partes[1];
+            String archivo = partes[2];
+            String decision = partes[3];
+
+            if ("ACEPTADA".equals(decision)) {
+                // CORRECCIÓN CLAVE: Añadir el permiso al mapa temporal en memoria
+                PERMISOS_CONCEDIDOS.computeIfAbsent(propietario, k -> new ConcurrentHashMap<>())
+                        .put(usuarioAutenticado, archivo);
+
+                escritor.println("✅ El usuario " + propietario + " ACEPTÓ la descarga del archivo: " + archivo);
+                escritor.println("   (Usa la opción [11] para iniciar la descarga.)");
+            } else if ("DENEGADA".equals(decision)) {
+                escritor.println("❌ El usuario " + propietario + " DENEGÓ la descarga del archivo: " + archivo);
+            }
+        }
+        escritor.println("----------------------------------------------");
+
+        // 3. Reescribir el archivo sin las notificaciones mostradas (limpieza)
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(archivoDecisiones))) {
+            for (String linea : lineasRestantes) {
+                writer.write(linea);
+                writer.newLine();
+            }
+        }
+    }
+
 
     private static void manejarSolicitudesPendientes(String propietario, BufferedReader lector, PrintWriter escritor) throws IOException {
         List<String> solicitudesActuales = new ArrayList<>();
@@ -199,12 +259,18 @@ public class Servidor2025 {
             String opcion = lector.readLine();
 
             if ("1".equals(opcion)) {
-                // Concede el permiso en memoria (temporal)
                 PERMISOS_CONCEDIDOS.computeIfAbsent(propietario, k -> new ConcurrentHashMap<>())
                         .put(solicitante, archivoSolicitado);
-                escritor.println("Permiso concedido a " + solicitante + ".");
+
+                // Registra la decisión PERMANENTE en el nuevo archivo
+                almacenarDecision(solicitante, propietario, archivoSolicitado, "ACEPTADA");
+
+                escritor.println("Permiso concedido a " + solicitante + ". Se le notificará su decisión.");
             } else if ("2".equals(opcion)) {
-                escritor.println("Permiso denegado a " + solicitante + ".");
+                // Registra la decisión PERMANENTE en el nuevo archivo
+                almacenarDecision(solicitante, propietario, archivoSolicitado, "DENEGADA");
+
+                escritor.println("Permiso denegado a " + solicitante + ". Se le notificará su decisión.");
             } else {
                 escritor.println("Solicitud de " + solicitante + " marcada como pendiente.");
                 lineasRestantes.add(solicitud); // Vuelve a guardar la solicitud
@@ -226,7 +292,6 @@ public class Servidor2025 {
         List<String> lineas = new ArrayList<>();
         boolean existe = false;
 
-        // Carga y verifica si la solicitud ya existe
         if (new File(ARCHIVO_SOLICITUDES).exists()) {
             try (BufferedReader reader = new BufferedReader(new FileReader(ARCHIVO_SOLICITUDES))) {
                 String linea;
@@ -241,7 +306,6 @@ public class Servidor2025 {
 
         if (existe) return false;
 
-        // Si no existe, la añade
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_SOLICITUDES, true))) {
             writer.write(nuevaSolicitud);
             writer.newLine();
@@ -249,7 +313,41 @@ public class Servidor2025 {
         return true;
     }
 
-    // --- MÉTODOS DE LÓGICA DE NEGOCIO ---
+    // --- MÉTODOS AUXILIARES DE DECISIONES ---
+
+    private static synchronized void almacenarDecision(String solicitante, String propietario, String archivo, String decision) throws IOException {
+        String nuevaDecision = solicitante + ":" + propietario + ":" + archivo + ":" + decision;
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_DECISIONES, true))) {
+            writer.write(nuevaDecision);
+            writer.newLine();
+        }
+    }
+
+    private static synchronized void eliminarDecision(String solicitante, String propietario, String archivo) throws IOException {
+        File archivoDecisiones = new File(ARCHIVO_DECISIONES);
+        if (!archivoDecisiones.exists()) return;
+
+        List<String> lineasRestantes = new ArrayList<>();
+        String decisionBuscadaBase = solicitante + ":" + propietario + ":" + archivo;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(archivoDecisiones))) {
+            String linea;
+            while ((linea = reader.readLine()) != null) {
+                if (!linea.startsWith(decisionBuscadaBase)) {
+                    lineasRestantes.add(linea);
+                }
+            }
+        }
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(archivoDecisiones))) {
+            for (String linea : lineasRestantes) {
+                writer.write(linea);
+                writer.newLine();
+            }
+        }
+    }
+    // --- MÉTODOS DE LÓGICA DE NEGOCIO (JUEGO, MENSAJERÍA, ETC.) ---
 
     private static boolean esContrasenaValida(String contrasena) {
         return contrasena != null && !contrasena.trim().isEmpty() && contrasena.length() >= 8;
@@ -769,10 +867,79 @@ public class Servidor2025 {
             return;
         }
 
-        boolean permisoConcedido = PERMISOS_CONCEDIDOS.getOrDefault(usuarioObjetivo, Collections.emptyMap())
+        // --- LÓGICA: Buscar decisiones en el ARCHIVO_DECISIONES ---
+        String decisionPersistente = null;
+        try (BufferedReader reader = new BufferedReader(new FileReader(ARCHIVO_DECISIONES))) {
+            String linea;
+            while ((linea = reader.readLine()) != null) {
+                String[] partes = linea.split(":");
+                // Formato: SOLICITANTE:PROPIETARIO:ARCHIVO:DECISION
+                if (partes.length == 4 && partes[0].equals(solicitante) && partes[1].equals(usuarioObjetivo) && partes[2].equals(nombreArchivo)) {
+                    decisionPersistente = partes[3];
+                    break;
+                }
+            }
+        } catch (FileNotFoundException e) {
+            // Ignorar si el archivo no existe aún
+        }
+
+        // Lógica principal basada en la persistencia o permisos en memoria
+        boolean permisoConcedidoMemoria = PERMISOS_CONCEDIDOS.getOrDefault(usuarioObjetivo, Collections.emptyMap())
                 .getOrDefault(solicitante, "").equals(nombreArchivo);
 
-        if (!permisoConcedido) {
+        if (permisoConcedidoMemoria || "ACEPTADA".equals(decisionPersistente)) {
+            // Si el permiso está en memoria o está registrado como ACEPTADO
+
+            if ("ACEPTADA".equals(decisionPersistente)) {
+                // Si llega aquí y la decisión está ACEPTADA, la notificamos y eliminamos de la persistencia (resguardo).
+                escritor.println("NOTIFICACIÓN: El usuario " + usuarioObjetivo + " ha ACEPTADO tu solicitud.");
+                eliminarDecision(solicitante, usuarioObjetivo, nombreArchivo); // Limpieza
+            } else {
+                // Si solo está en memoria (fue añadido en el login)
+                escritor.println("Permiso concedido para la descarga.");
+            }
+
+            escritor.println("¿Deseas [1] Descargar ahora o [2] Descargar después?");
+            String opcionCliente = lector.readLine();
+
+            if ("1".equals(opcionCliente)) {
+
+                try (BufferedReader lectorArchivo = new BufferedReader(new FileReader(archivoFuente))) {
+                    String linea;
+                    while ((linea = lectorArchivo.readLine()) != null) {
+                        escritor.println(linea);
+                    }
+                    escritor.println("FIN_DESCARGA_ARCHIVO");
+
+                    // Si el permiso estaba en memoria, también lo eliminamos (es de un solo uso)
+                    PERMISOS_CONCEDIDOS.getOrDefault(usuarioObjetivo, Collections.emptyMap()).remove(solicitante);
+
+                } catch (IOException e) {
+                    escritor.println("Error al leer el archivo en el servidor.");
+                    escritor.println("FIN_DESCARGA_ARCHIVO");
+                }
+                return;
+
+            } else if ("2".equals(opcionCliente)) {
+                // Si elige descargar después.
+                escritor.println("Descarga pospuesta. Puedes iniciarla nuevamente con la opción 11.");
+                escritor.println("FIN_DESCARGA_ARCHIVO");
+                return;
+            } else {
+                escritor.println("Opción no válida. Volviendo al menú.");
+                escritor.println("FIN_DESCARGA_ARCHIVO");
+                return;
+            }
+
+        } else if ("DENEGADA".equals(decisionPersistente)) {
+            // Si la decisión fue DENEGADA previamente, lo notificamos y eliminamos el registro.
+            escritor.println("NOTIFICACIÓN: El usuario " + usuarioObjetivo + " ha DENEGADO tu solicitud.");
+            eliminarDecision(solicitante, usuarioObjetivo, nombreArchivo);
+            escritor.println("FIN_DESCARGA_ARCHIVO");
+            return;
+
+        } else {
+            // No hay permiso ni decisión previa. Generar nueva solicitud.
             String nuevaSolicitud = usuarioObjetivo + ":" + solicitante + ":" + nombreArchivo;
             if (almacenarNuevaSolicitud(nuevaSolicitud)) {
                 escritor.println("Permiso no concedido. Se ha registrado una solicitud a '" + usuarioObjetivo + "'. Deberá esperar a que el usuario se conecte para responder.");
@@ -781,23 +948,6 @@ public class Servidor2025 {
             }
             escritor.println("FIN_DESCARGA_ARCHIVO");
             return;
-        }
-
-
-        // Si el permiso fue concedido, procede con la descarga
-        try (BufferedReader lectorArchivo = new BufferedReader(new FileReader(archivoFuente))) {
-            String linea;
-            while ((linea = lectorArchivo.readLine()) != null) {
-                escritor.println(linea);
-            }
-            escritor.println("FIN_DESCARGA_ARCHIVO");
-
-            // Eliminar permiso de la memoria después de usarlo (para que sea de un solo uso)
-            PERMISOS_CONCEDIDOS.getOrDefault(usuarioObjetivo, Collections.emptyMap()).remove(solicitante);
-
-        } catch (IOException e) {
-            escritor.println("Error al leer el archivo en el servidor.");
-            escritor.println("FIN_DESCARGA_ARCHIVO");
         }
     }
 

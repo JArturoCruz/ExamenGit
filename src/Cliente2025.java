@@ -5,7 +5,6 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.util.regex.Pattern;
 
@@ -58,7 +57,28 @@ public class Cliente2025 {
             usuarioAutenticado = usuario;
             new File(DIRECTORIO_CLIENTE + File.separator + usuarioAutenticado).mkdirs();
 
-            String mensajeInicial = lectorServidor.readLine();
+            // --- LÓGICA CORREGIDA PARA LEER NOTIFICACIONES Y MENSAJE INICIAL ---
+            String mensajeInicial = null;
+            String lineaLeida;
+
+            // Leemos línea por línea hasta encontrar el mensaje inicial de INFO o SOLICITUDES.
+            while ((lineaLeida = lectorServidor.readLine()) != null) {
+                // Si encontramos el inicio del mensaje de Solicitudes/Info (que debe venir después de las notificaciones)
+                if (lineaLeida.contains("SOLICITUDES DE DESCARGA PENDIENTES") || lineaLeida.startsWith("INFO:")) {
+                    mensajeInicial = lineaLeida;
+                    break;
+                }
+                // Si la línea no es el mensaje de INFO/SOLICITUDES, es parte de la notificación (o un salto de línea).
+                System.out.println(lineaLeida);
+            }
+
+            if (mensajeInicial == null) {
+                System.out.println("Error: No se recibió el mensaje inicial del servidor.");
+                return;
+            }
+            // --- FIN DE LÓGICA CORREGIDA ---
+
+
             if (mensajeInicial.contains("SOLICITUDES DE DESCARGA PENDIENTES") || mensajeInicial.startsWith("INFO:")) {
                 System.out.println("\n" + mensajeInicial);
 
@@ -70,12 +90,12 @@ public class Cliente2025 {
                     escritor.println("ENTER_PRESIONADO");
 
                     while (true) {
-                        String linea = lectorServidor.readLine();
-                        if (linea == null || linea.startsWith("--- Fin de solicitudes ---")) break;
+                        String lineaSol = lectorServidor.readLine();
+                        if (lineaSol == null || lineaSol.startsWith("--- Fin de solicitudes ---")) break;
 
-                        System.out.println(linea);
+                        System.out.println(lineaSol);
 
-                        if (linea.contains("¿Permitir descarga?")) {
+                        if (lineaSol.contains("¿Permitir descarga?")) {
                             String opcion = teclado.readLine();
                             escritor.println(opcion);
                             System.out.println("Servidor: " + lectorServidor.readLine()); // Lee el mensaje de confirmación/denegación
@@ -146,20 +166,20 @@ public class Cliente2025 {
                         }
 
                         while (true) {
-                            String linea = lectorServidor.readLine();
-                            if (linea == null || linea.equals("FIN_PAGINA")) {
-                                if (linea == null) break;
+                            String lineaMensaje = lectorServidor.readLine();
+                            if (lineaMensaje == null || lineaMensaje.equals("FIN_PAGINA")) {
+                                if (lineaMensaje == null) break;
                                 System.out.print("Elige una opción: ");
                                 String eleccion = teclado.readLine();
                                 escritor.println(eleccion);
                                 if (eleccion.equalsIgnoreCase("V")) {
                                     break;
                                 }
-                            } else if (linea.contains("No tienes mensajes.")) {
-                                System.out.println(linea);
+                            } else if (lineaMensaje.contains("No tienes mensajes.")) {
+                                System.out.println(lineaMensaje);
                                 break;
                             } else {
-                                System.out.println(linea);
+                                System.out.println(lineaMensaje);
                             }
                         }
                         break;
@@ -170,12 +190,12 @@ public class Cliente2025 {
                     case "5":
                     case "6":
                         while (true) {
-                            String linea = lectorServidor.readLine();
-                            if (linea == null) break;
+                            String lineaMsjDel = lectorServidor.readLine();
+                            if (lineaMsjDel == null) break;
 
-                            System.out.println(linea);
+                            System.out.println(lineaMsjDel);
 
-                            if (linea.equals("FIN_PAGINA")) {
+                            if (lineaMsjDel.equals("FIN_PAGINA")) {
                                 System.out.print("Elige una opción: ");
                                 String eleccion = teclado.readLine();
                                 escritor.println(eleccion);
@@ -188,18 +208,18 @@ public class Cliente2025 {
                                         break;
                                     }
                                 }
-                            } else if (linea.contains("No tienes mensajes")) {
+                            } else if (lineaMsjDel.contains("No tienes mensajes")) {
                                 break;
                             }
                         }
                         break;
                     case "7":
                         while (true) {
-                            String linea = lectorServidor.readLine();
-                            if (linea == null || linea.equals("FIN_USUARIOS")) {
+                            String lineaUsers = lectorServidor.readLine();
+                            if (lineaUsers == null || lineaUsers.equals("FIN_USUARIOS")) {
                                 break;
                             }
-                            System.out.println("Servidor: " + linea);
+                            System.out.println("Servidor: " + lineaUsers);
                         }
                         break;
                     case "8":
@@ -225,11 +245,11 @@ public class Cliente2025 {
                         escritor.println(usuarioListar);
 
                         while (true) {
-                            String linea = lectorServidor.readLine();
-                            if (linea == null || linea.equals("FIN_LISTA_ARCHIVOS")) {
+                            String lineaLista = lectorServidor.readLine();
+                            if (lineaLista == null || lineaLista.equals("FIN_LISTA_ARCHIVOS")) {
                                 break;
                             }
-                            System.out.println("Servidor: " + linea);
+                            System.out.println("Servidor: " + lineaLista);
                         }
                         break;
                     case "10":
@@ -241,13 +261,13 @@ public class Cliente2025 {
                         System.out.println("Servidor: " + respuestaCreacion);
 
                         if (respuestaCreacion.startsWith("Escribe el contenido")) {
-                            String linea;
-                            while ((linea = teclado.readLine()) != null) {
-                                if (linea.equals("FIN_CONTENIDO")) {
-                                    escritor.println(linea);
+                            String lineaContenido;
+                            while ((lineaContenido = teclado.readLine()) != null) {
+                                if (lineaContenido.equals("FIN_CONTENIDO")) {
+                                    escritor.println(lineaContenido);
                                     break;
                                 }
-                                escritor.println(linea);
+                                escritor.println(lineaContenido);
                             }
                             String respuestaFinal = lectorServidor.readLine();
                             System.out.println("Servidor: " + respuestaFinal);
@@ -262,41 +282,61 @@ public class Cliente2025 {
                         String archivoADescargar = teclado.readLine();
                         escritor.println(archivoADescargar);
 
-                        // Recibe la respuesta del servidor (Permiso, Error, o primera línea de contenido)
+                        // Recibe la primera respuesta del servidor (Permiso, Error, NOTIFICACIÓN)
                         String primeraRespuesta = lectorServidor.readLine();
                         System.out.println("Servidor: " + primeraRespuesta);
 
-                        if (primeraRespuesta.contains("Permiso no concedido") || primeraRespuesta.startsWith("Error:")) {
-                            // Si el permiso no fue concedido o hubo un error, espera el FIN_DESCARGA_ARCHIVO del servidor
+                        // Si la primera respuesta es una notificación de DECISIÓN o una solicitud de OPCIÓN (1 o 2),
+                        // el cliente debe leer la siguiente línea para la opción de descarga/posponer.
+                        String opcionDescarga = null;
+                        if (primeraRespuesta.contains("NOTIFICACIÓN:") || primeraRespuesta.contains("Permiso concedido para la descarga.")) {
+                            String promptOpcion = lectorServidor.readLine();
+                            System.out.println("Servidor: " + promptOpcion);
+                            opcionDescarga = teclado.readLine();
+                            escritor.println(opcionDescarga);
+                        }
+
+                        // Si es un error, denegación o posposición, el servidor enviará FIN_DESCARGA_ARCHIVO o la confirmación de pospuesta.
+                        if (primeraRespuesta.contains("Permiso no concedido") || primeraRespuesta.startsWith("Error:") ||
+                                (opcionDescarga != null && opcionDescarga.equals("2")) || primeraRespuesta.contains("DENEGADO tu solicitud")) {
+                            // Espera el mensaje final del servidor (FIN_DESCARGA_ARCHIVO o la confirmación de la pospuesta)
                             while (true) {
-                                String linea = lectorServidor.readLine();
-                                if (linea == null || linea.equals("FIN_DESCARGA_ARCHIVO")) break;
-                                System.out.println("Servidor: " + linea);
+                                String lineaFinal = lectorServidor.readLine();
+                                if (lineaFinal == null || lineaFinal.equals("FIN_DESCARGA_ARCHIVO")) break;
+                                System.out.println("Servidor: " + lineaFinal);
                             }
                             break;
                         }
+
+                        // Si la opción de descarga es '1', la siguiente línea que el servidor envía es la primera línea del archivo.
+                        String primeraLineaContenido = (opcionDescarga != null && opcionDescarga.equals("1")) ? lectorServidor.readLine() : primeraRespuesta;
 
                         // Procede con la descarga si el permiso está concedido (la primera respuesta ya es contenido)
                         String rutaCompletaDescarga = DIRECTORIO_CLIENTE + File.separator + usuarioAutenticado + File.separator + "descargado_" + archivoADescargar;
 
                         try (FileWriter escritorArchivo = new FileWriter(rutaCompletaDescarga)) {
-                            escritorArchivo.write(primeraRespuesta + System.lineSeparator()); // Escribe la primera línea de contenido
+                            escritorArchivo.write(primeraLineaContenido + System.lineSeparator()); // Escribe la primera línea de contenido
 
                             while (true) {
-                                String linea = lectorServidor.readLine();
-                                if (linea == null || linea.equals("FIN_DESCARGA_ARCHIVO")) {
-                                    if (linea != null && linea.startsWith("Error:")) {
-                                        System.out.println("Servidor: " + linea);
+                                String lineaDescarga = lectorServidor.readLine();
+                                if (lineaDescarga == null || lineaDescarga.equals("FIN_DESCARGA_ARCHIVO")) {
+                                    if (lineaDescarga != null && lineaDescarga.startsWith("Error:")) {
+                                        System.out.println("Servidor: " + lineaDescarga);
                                     } else {
                                         System.out.println("Archivo '" + archivoADescargar + "' descargado y guardado en '" + rutaCompletaDescarga + "'.");
                                         File archivoDescargado = new File(rutaCompletaDescarga);
-                                        if (archivoDescargado.length() == 0) {
-                                            System.out.println("[Advertencia]: El archivo descargado está vacío. Es posible que el archivo en el servidor estuviera vacío.");
+                                        // Leer el archivo descargado para verificar si está vacío (manejo de caso extremo)
+                                        try(BufferedReader br = new BufferedReader(new FileReader(archivoDescargado))) {
+                                            if (br.readLine() == null) {
+                                                System.out.println("[Advertencia]: El archivo descargado está vacío. Es posible que el archivo en el servidor estuviera vacío.");
+                                            }
+                                        } catch (IOException e) {
+                                            // Ignorar, solo verificamos el contenido.
                                         }
                                     }
                                     break;
                                 }
-                                escritorArchivo.write(linea + System.lineSeparator());
+                                escritorArchivo.write(lineaDescarga + System.lineSeparator());
                             }
                         } catch (IOException e) {
                             System.out.println("Error al guardar el archivo descargado.");

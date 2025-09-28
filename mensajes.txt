@@ -21,3 +21,4 @@ Arturo2:Arturo:adios
 Arturo2:Arturo:hola
 Arturo2:Arturo:hola
 Arturo2:ArturoPop:hola qhaces
+usuario2:usuario1:hola hola como estas
