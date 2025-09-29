@@ -19,6 +19,9 @@ public class Servidor2025 {
 
     private static final Map<String, Map<String, String>> PERMISOS_CONCEDIDOS = new ConcurrentHashMap<>();
 
+
+    // Metodo principal que inicia el servidor, crea el directorio raíz y espera conexiones de clientes.
+
     public static void main(String[] args) {
         new File(DIRECTORIO_RAIZ).mkdirs();
         try (ServerSocket serverSocket = new ServerSocket(PUERTO)) {
@@ -33,7 +36,7 @@ public class Servidor2025 {
             e.printStackTrace();
         }
     }
-
+     // Gestiona la sesión completa de un cliente conectado, incluyendo autenticación, menú de opciones y cierre de conexión.
     private static void manejarCliente(Socket cliente) {
         String usuarioAutenticado = null;
         try (
@@ -62,7 +65,7 @@ public class Servidor2025 {
             }
         }
     }
-
+   // Maneja el proceso de autenticación inicial, permitiendo al usuario iniciar sesión o registrarse.
     private static String procesoDeAutenticacion(BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("Bienvenido. ¿Deseas [1] Iniciar sesión, [2] Registrarte?");
         String opcion = lector.readLine();
@@ -97,7 +100,7 @@ public class Servidor2025 {
         }
         return usuario;
     }
-
+    // Menú principal, procesando las opciones del usuario (jugar, mensajes, archivos, etc.) hasta que decide cerrar sesión.
     private static void buclePrincipalDeMenu(String usuario, BufferedReader lector, PrintWriter escritor, Socket cliente) throws IOException {
         String opcionMenu;
         do {
@@ -124,6 +127,8 @@ public class Servidor2025 {
         } while (opcionMenu != null && !"4".equals(opcionMenu));
     }
 
+  //Submenú de opciones relacionadas con archivos (listar, crear, descargar, transferir).
+
     private static void menuDeArchivos(String usuario, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("Menú Archivos: [1] Listar | [2] Crear | [3] Descargar | [4] Transferir | [V] Volver");
         String opcion = lector.readLine();
@@ -136,7 +141,7 @@ public class Servidor2025 {
             default: escritor.println("Opción de archivos no válida."); break;
         }
     }
-
+   // Implementa la lógica del juego de adivinar el numero, gestionando los intentos y respuestas.
     private static void jugarAdivinarNumero(BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("¡Bienvenido al juego de adivinar! Elige un número del 1 al 10. Solo tienes 3 intentos.");
         Random random = new Random();
@@ -166,7 +171,7 @@ public class Servidor2025 {
         }
         escritor.println("No lograste adivinar. Era: " + numeroSecreto + ". FIN_JUEGO");
     }
-
+   // Permite a un usuario enviar un mensaje a otro, verificando existencia, bloqueos y validez del mensaje.
     private static void enviarMensaje(String remitente, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("¿Para quién es el mensaje? Escribe '[V]' para volver.");
         String destinatario = lector.readLine();
@@ -198,7 +203,7 @@ public class Servidor2025 {
             }
         }
     }
-
+// Gestiona la lectura de mensajes, permitiendo al usuario elegir si ver todos los mensajes o filtrar por un remitente específico.
     private static void manejarLecturaMensajes(String usuario, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("Deseas ver [1] Todos tus mensajes o [2] Mensajes de un usuario específico?");
         String opcionLectura = lector.readLine();
@@ -214,7 +219,7 @@ public class Servidor2025 {
             escritor.println("Opción no válida.");
         }
     }
-
+// Lee y muestra los mensajes de un usuario de forma paginada para facilitar la lectura.
     private static void leerMensajesPaginados(String usuario, String filtroUsuario, BufferedReader lector, PrintWriter escritor) throws IOException {
         List<String> mensajesRecibidos = new ArrayList<>();
         synchronized (Servidor2025.class) {
@@ -259,7 +264,7 @@ public class Servidor2025 {
             else if (opcion.equalsIgnoreCase("A") && paginaActual > 1) paginaActual--;
         }
     }
-
+    // Permite a un usuario eliminar un mensaje específico, ya sea recibido o enviado.
     private static void eliminarMensajes(String usuario, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("¿Qué mensajes deseas eliminar? [1] Recibidos | [2] Enviados");
         String tipo = lector.readLine();
@@ -319,7 +324,7 @@ public class Servidor2025 {
             escritor.println("Selección no válida.");
         }
     }
-
+    // Muestra al cliente una lista de todos los usuarios registrados en el sistema.
     private static void mostrarUsuariosRegistrados(PrintWriter escritor) {
         escritor.println("--- Usuarios Registrados ---");
         try (BufferedReader br = new BufferedReader(new FileReader(ARCHIVO_USUARIOS))) {
@@ -329,7 +334,7 @@ public class Servidor2025 {
         }
         escritor.println("FIN_COMANDO");
     }
-
+     // Gestiona la lógica para que un usuario pueda bloquear o desbloquear a otro.
     private static void bloquearDesbloquearUsuario(String usuario, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("Escribe el usuario que quieres bloquear o desbloquear:");
         String usuarioATocar = lector.readLine();
@@ -358,7 +363,7 @@ public class Servidor2025 {
             }
         }
     }
-
+//    Permite a un usuario solicitar la lista de archivos de otro, gestionando los permisos necesarios.
     private static void listarArchivosDeUsuario(String solicitante, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("¿De qué usuario quieres ver los archivos?");
         String propietario = lector.readLine();
@@ -377,7 +382,7 @@ public class Servidor2025 {
             solicitarPermiso(solicitante, propietario, CLAVE_LISTAR, escritor);
         }
     }
-
+    // Permite al usuario crear un nuevo archivo de texto en su directorio personal del servidor.
     private static void crearArchivoRemoto(String usuario, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("Nombre del archivo (debe terminar en .txt):");
         String nombreArchivo = lector.readLine();
@@ -400,7 +405,7 @@ public class Servidor2025 {
             escritor.println("Archivo creado exitosamente.");
         }
     }
-
+//    Gestiona la solicitud de descarga de un archivo de otro usuario, verificando los permisos antes de enviarlo.
     private static void descargarArchivo(String solicitante, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("Usuario propietario del archivo:");
         String propietario = lector.readLine();
@@ -430,19 +435,18 @@ public class Servidor2025 {
         }
     }
 
+    // Transfiere un archivo desde el directorio del usuario actual al de otro usuario en el servidor.
     private static void transferirArchivoInterno(String remitente, BufferedReader lector, PrintWriter escritor) throws IOException {
         escritor.println("Usuario destino:");
         String destino = lector.readLine();
         escritor.println("Nombre del archivo a transferir:");
         String nombreArchivo = lector.readLine();
-
         if(destino == null || nombreArchivo == null || !verificarUsuarioExiste(destino) || destino.equals(remitente)){
             escritor.println("Error: Datos de transferencia no válidos.");
             return;
         }
         File origen = new File(DIRECTORIO_RAIZ + File.separator + remitente, nombreArchivo);
         File archivoDestino = new File(DIRECTORIO_RAIZ + File.separator + destino, nombreArchivo);
-
         if(!origen.exists()){
             escritor.println("Error: No tienes un archivo con ese nombre.");
             return;
@@ -456,7 +460,7 @@ public class Servidor2025 {
             escritor.println("Archivo transferido a " + destino + " exitosamente.");
         }
     }
-
+    // Registra una solicitud de permiso cuando un usuario intenta acceder a un recurso de otro sin autorización previa.
     private static void solicitarPermiso(String solicitante, String propietario, String clave, PrintWriter escritor) throws IOException {
         String nuevaSolicitud = propietario + ":" + solicitante + ":" + clave;
         if (almacenarNuevaSolicitud(nuevaSolicitud)) {
@@ -466,7 +470,7 @@ public class Servidor2025 {
         }
         escritor.println("FIN_COMANDO");
     }
-
+  // Muestra al usuario las notificaciones sobre las decisiones (aceptadas/denegadas) de sus solicitudes de permiso anteriores.
     private static void mostrarDecisionesPendientes(String usuario, PrintWriter escritor) throws IOException {
         List<String> lineasRestantes = new ArrayList<>();
         List<String> notificaciones = new ArrayList<>();
@@ -498,7 +502,7 @@ public class Servidor2025 {
             escritor.println("---------------------------------");
         }
     }
-
+    // Procesa las solicitudes de permiso pendientes de otros usuarios, permitiendo al propietario aceptarlas o denegarlas.
     private static void manejarSolicitudesPendientes(String propietario, BufferedReader lector, PrintWriter escritor) throws IOException {
         List<String> solicitudesPendientes = new ArrayList<>();
         List<String> lineasRestantes = new ArrayList<>();
@@ -545,10 +549,12 @@ public class Servidor2025 {
         escritor.println("--- Fin de solicitudes ---");
     }
 
+  // Verifica si una contraseña cumple con los requisitos mínimos de seguridad (longitud >= 8).
+
     private static boolean esContrasenaValida(String contrasena) {
         return contrasena != null && !contrasena.trim().isEmpty() && contrasena.length() >= 8;
     }
-
+    //Comprueba si un nombre de usuario ya existe en el archivo de usuarios.
     private static synchronized boolean verificarUsuarioExiste(String usuario) throws IOException {
         if (usuario == null) return false;
         try (BufferedReader lector = new BufferedReader(new FileReader(ARCHIVO_USUARIOS))) {
@@ -557,7 +563,7 @@ public class Servidor2025 {
             return false;
         }
     }
-
+   // Valida si el usuario y la contraseña proporcionados coinciden con los registrados en el sistema.
     private static synchronized boolean verificarCredenciales(String usuario, String contrasena) throws IOException {
         if (usuario == null || contrasena == null) return false;
         try (BufferedReader lector = new BufferedReader(new FileReader(ARCHIVO_USUARIOS))) {
@@ -566,7 +572,7 @@ public class Servidor2025 {
             return false;
         }
     }
-
+  // Registra un nuevo usuario en el sistema, guardando sus credenciales y creando su directorio de archivos.
     private static synchronized boolean registrarUsuario(String usuario, String contrasena) throws IOException {
         if (verificarUsuarioExiste(usuario)) return false;
         try (BufferedWriter escritor = new BufferedWriter(new FileWriter(ARCHIVO_USUARIOS, true))) {
@@ -576,7 +582,7 @@ public class Servidor2025 {
             return true;
         }
     }
-
+//    Verifica si un usuario ha bloqueado a otro, consultando el archivo de bloqueos.
     private static synchronized boolean estaBloqueado(String usuario, String bloqueado) throws IOException {
         try (BufferedReader lector = new BufferedReader(new FileReader(ARCHIVO_BLOQUEOS))) {
             return lector.lines().anyMatch(linea -> {
@@ -590,7 +596,7 @@ public class Servidor2025 {
             return false;
         }
     }
-
+   // Añade o elimina una relación de bloqueo entre dos usuarios en el archivo de bloqueos.
     private static synchronized void gestionarBloqueosArchivo(String usuario, String usuarioCambio, boolean bloquear) throws IOException {
         File archivo = new File(ARCHIVO_BLOQUEOS);
         List<String> lineas = new ArrayList<>();
@@ -622,7 +628,7 @@ public class Servidor2025 {
         }
         reescribirArchivo(ARCHIVO_BLOQUEOS, lineas);
     }
-
+    // Metodo de utilidad para reescribir un archivo completo con una nueva lista de contenidos.
     private static synchronized void reescribirArchivo(String nombreArchivo, List<String> lineas) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(nombreArchivo))) {
             for (String linea : lineas) {
@@ -631,7 +637,7 @@ public class Servidor2025 {
             }
         }
     }
-
+   // Guarda una nueva solicitud de permiso en el archivo correspondiente, evitando duplicados.
     private static synchronized boolean almacenarNuevaSolicitud(String nuevaSolicitud) throws IOException {
         File archivo = new File(ARCHIVO_SOLICITUDES);
         if (archivo.exists()) {
@@ -647,7 +653,7 @@ public class Servidor2025 {
         }
         return true;
     }
-
+     // Guarda la decisión (aceptada/denegada) sobre una solicitud de permiso para notificar al solicitante.
     private static synchronized void almacenarDecision(String sol, String prop, String clave, String dec) throws IOException {
         String nuevaDecision = sol + ":" + prop + ":" + clave + ":" + dec;
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_DECISIONES, true))) {
@@ -656,6 +662,7 @@ public class Servidor2025 {
         }
     }
 
+   // Verifica si un usuario ya tiene un permiso permanente para acceder a un recurso de otro.
     private static synchronized boolean tienePermisoPermanente(String propietario, String solicitante, String clave) throws IOException {
         File archivo = new File(ARCHIVO_PERMISOS);
         if (!archivo.exists()) {
@@ -666,7 +673,7 @@ public class Servidor2025 {
             return reader.lines().anyMatch(linea -> linea.equals(permisoBuscado));
         }
     }
-
+    // Guarda un permiso permanente en el archivo de permisos para que no se vuelva a solicitar.
     private static synchronized void otorgarPermisoPermanente(String propietario, String solicitante, String clave) throws IOException {
         if (tienePermisoPermanente(propietario, solicitante, clave)) {
             return;
@@ -677,7 +684,7 @@ public class Servidor2025 {
             writer.newLine();
         }
     }
-
+    // Realiza y envía la lista de archivos de un directorio de usuario específico al cliente.
     private static void realizarListado(String usuario, PrintWriter escritor) {
         escritor.println("--- Archivos de '" + usuario + "' ---");
         File dirUsuario = new File(DIRECTORIO_RAIZ, usuario);

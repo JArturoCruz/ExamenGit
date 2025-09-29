@@ -1,1 +1,2 @@
 Arturo1989:usuario1:LISTAR_ARCHIVOS
+Arturo:usuario1:LISTAR_ARCHIVOS
