@@ -24,3 +24,5 @@ Arturo2:ArturoPop:hola qhaces
 usuario2:usuario1:hola qeu tal
 usuario1:usuario2:hola refactorizando
 usuario2:usuario1:hola que tal mi amigo usuario 2
+usuario2:usuario1:holaaaaaa
+usuario1:Arturito:hola que tal que tal

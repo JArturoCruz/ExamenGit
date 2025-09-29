@@ -33,13 +33,23 @@ public class Cliente2025 {
     }
 
     private static boolean manejarAutenticacion(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
-        System.out.println("Servidor: " + lectorServidor.readLine());
+        System.out.println("Servidor: " + lectorServidor.readLine()); // Lee bienvenida
 
         String opcionLogin;
-        do {
+        while (true) {
             System.out.print("Elige una opción: ");
             opcionLogin = teclado.readLine();
-        } while (!"1".equals(opcionLogin) && !"2".equals(opcionLogin));
+            if ("1".equals(opcionLogin) || "2".equals(opcionLogin)) {
+                break;
+            } else {
+                System.out.println("Opción no válida. Por favor, elige [1] o [2].");
+            }
+        }
+        if ("1".equals(opcionLogin)) {
+            System.out.println("\n-> Iniciando sesión...");
+        } else {
+            System.out.println("\n-> Registrando usuario...");
+        }
         escritor.println(opcionLogin);
 
         System.out.println("Servidor: " + lectorServidor.readLine());
@@ -60,7 +70,6 @@ public class Cliente2025 {
         }
         return false;
     }
-
     private static void manejarNotificacionesIniciales(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
         String linea;
         while ((linea = lectorServidor.readLine()) != null) {
