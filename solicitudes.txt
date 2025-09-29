@@ -1,3 +1,1 @@
 Arturo1989:usuario1:LISTAR_ARCHIVOS
-usuario2:usuario1:arc1.txt
-usuario2:usuario1:arc2.txt

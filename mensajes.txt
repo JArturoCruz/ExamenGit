@@ -21,4 +21,8 @@ Arturo2:Arturo:adios
 Arturo2:Arturo:hola
 Arturo2:Arturo:hola
 Arturo2:ArturoPop:hola qhaces
-usuario2:usuario1:hola hola como estas
+usuario2:usuario1:holacomo estas
+usuario2:usuario1:hola qeu tal
+usuario2:usuario1:hola como estas usuario2
+usuario1:usuario2:a
+usuario1:usuario2:hola como estas refactorizando y tu
