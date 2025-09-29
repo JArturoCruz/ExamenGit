@@ -188,13 +188,24 @@ public class Cliente2025 {
     }
 
     private static void manejarEliminacionMensajes(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
-        System.out.println("Servidor: " + lectorServidor.readLine());
-        escritor.println(teclado.readLine());
-
+        System.out.println("Servidor: " + lectorServidor.readLine()); // Pide tipo: [1] Recibidos | [2] Enviados
+        String tipoMensajes;
+        while (true) {
+            System.out.print("Elige el tipo de mensajes a eliminar: ");
+            tipoMensajes = teclado.readLine();
+            if ("1".equals(tipoMensajes) || "2".equals(tipoMensajes)) {
+                break;
+            } else {
+                System.out.println("Error: Opción no válida. Debes elegir [1] o [2].");
+            }
+        }
+        escritor.println(tipoMensajes);
         String linea;
         while(!(linea = lectorServidor.readLine()).contains("Escribe el número")){
             System.out.println(linea);
-            if (linea.contains("No tienes mensajes")) return;
+            if (linea.contains("No tienes mensajes")) {
+                return;
+            }
         }
         System.out.println(linea);
 
