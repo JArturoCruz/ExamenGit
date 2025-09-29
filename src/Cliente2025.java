@@ -146,24 +146,39 @@ public class Cliente2025 {
     }
 
     private static void manejarLecturaMensajes(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
-        System.out.println("Servidor: " + lectorServidor.readLine());
-        escritor.println(teclado.readLine());
-
+        System.out.println("Servidor: " + lectorServidor.readLine()); // Muestra: Deseas ver [1] Todos...
+        String eleccionLectura;
+        while (true) {
+            System.out.print("Elige una opción para leer mensajes: ");
+            eleccionLectura = teclado.readLine();
+            if ("1".equals(eleccionLectura) || "2".equals(eleccionLectura)) {
+                break;
+            } else {
+                System.out.println("Error: Opción no válida. Debes elegir [1] o [2].");
+            }
+        }
+        escritor.println(eleccionLectura);
         String respuesta = lectorServidor.readLine();
         if (respuesta.contains("Escribe el nombre")) {
             System.out.println("Servidor: " + respuesta);
             escritor.println(teclado.readLine());
         } else {
-            System.out.println(respuesta);
+            System.out.println(respuesta); // Muestra la primera línea de mensajes o "No tienes mensajes"
         }
 
         while (true) {
             String linea = lectorServidor.readLine();
-            if (linea == null || linea.equals("FIN_PAGINA")) {
+            if (linea.contains("No tienes mensajes")) {
+                System.out.println(linea);
+                lectorServidor.readLine();
+                break;
+            }
+
+            if (linea.equals("FIN_PAGINA")) {
                 System.out.print("Elige una opción ([N] Siguiente, [A] Anterior, [V] Volver): ");
-                String eleccion = teclado.readLine();
-                escritor.println(eleccion);
-                if (eleccion.equalsIgnoreCase("V")) {
+                String eleccionPaginado = teclado.readLine();
+                escritor.println(eleccionPaginado);
+                if (eleccionPaginado.equalsIgnoreCase("V")) {
                     break;
                 }
             } else {
