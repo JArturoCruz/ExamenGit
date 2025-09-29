@@ -3,7 +3,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public class Servidor2025 {
 
@@ -15,17 +14,15 @@ public class Servidor2025 {
     private static final String ARCHIVO_BLOQUEOS = "bloqueos.txt";
     private static final String ARCHIVO_SOLICITUDES = "solicitudes.txt";
     private static final String ARCHIVO_DECISIONES = "decisiones_descarga.txt";
-
+    private static final String ARCHIVO_PERMISOS = "permisos.txt"; // Archivo para permisos permanentes
     private static final String CLAVE_LISTAR = "LISTAR_ARCHIVOS";
 
     private static final Map<String, Map<String, String>> PERMISOS_CONCEDIDOS = new ConcurrentHashMap<>();
 
     public static void main(String[] args) {
         new File(DIRECTORIO_RAIZ).mkdirs();
-
         try (ServerSocket serverSocket = new ServerSocket(PUERTO)) {
             System.out.println("Servidor listo en el puerto " + PUERTO + ". Esperando clientes...");
-
             while (true) {
                 Socket clienteSocket = serverSocket.accept();
                 System.out.println("Cliente conectado: " + clienteSocket.getInetAddress());
@@ -44,26 +41,22 @@ public class Servidor2025 {
                 BufferedReader lector = new BufferedReader(new InputStreamReader(cliente.getInputStream()))
         ) {
             usuarioAutenticado = procesoDeAutenticacion(lector, escritor);
-
             if (usuarioAutenticado == null) {
                 cliente.close();
                 return;
             }
-
             mostrarDecisionesPendientes(usuarioAutenticado, escritor);
             manejarSolicitudesPendientes(usuarioAutenticado, lector, escritor);
             buclePrincipalDeMenu(usuarioAutenticado, lector, escritor, cliente);
-
         } catch (IOException e) {
-            System.err.println("Error de comunicación con el cliente '" + (usuarioAutenticado != null ? usuarioAutenticado : "desconocido") + "': " + e.getMessage());
+            String user = (usuarioAutenticado != null) ? usuarioAutenticado : "desconocido";
+            System.err.println("Error de comunicación con el cliente '" + user + "': " + e.getMessage());
         } finally {
             if (usuarioAutenticado != null) {
                 PERMISOS_CONCEDIDOS.remove(usuarioAutenticado);
             }
             try {
-                if (!cliente.isClosed()) {
-                    cliente.close();
-                }
+                if (!cliente.isClosed()) cliente.close();
             } catch (IOException e) {
                 System.err.println("Error al cerrar el socket del cliente: " + e.getMessage());
             }
@@ -346,16 +339,22 @@ public class Servidor2025 {
         }
 
         if (estaBloqueado(usuario, usuarioATocar)) {
-            escritor.println("El usuario está bloqueado. ¿Desbloquear? [1] Sí");
-            if ("1".equals(lector.readLine())) {
+            escritor.println("El usuario está bloqueado. ¿Desbloquear? [1] Sí / [2] No");
+            String opt = lector.readLine();
+            if ("1".equals(opt)) {
                 gestionarBloqueosArchivo(usuario, usuarioATocar, false);
                 escritor.println("Usuario desbloqueado.");
+            } else {
+                escritor.println("Acción cancelada.");
             }
         } else {
-            escritor.println("El usuario no está bloqueado. ¿Bloquear? [1] Sí");
-            if ("1".equals(lector.readLine())) {
+            escritor.println("El usuario no está bloqueado. ¿Bloquear? [1] Sí / [2] No");
+            String opt = lector.readLine();
+            if ("1".equals(opt)) {
                 gestionarBloqueosArchivo(usuario, usuarioATocar, true);
                 escritor.println("Usuario bloqueado.");
+            } else {
+                escritor.println("Acción cancelada.");
             }
         }
     }
@@ -365,20 +364,15 @@ public class Servidor2025 {
         String propietario = lector.readLine();
         if (propietario == null || !verificarUsuarioExiste(propietario)) {
             escritor.println("Error: Usuario no existe.");
+            escritor.println("FIN_COMANDO");
             return;
         }
-
         if (solicitante.equals(propietario)) {
             realizarListado(propietario, escritor);
             return;
         }
-
-        boolean tienePermiso = PERMISOS_CONCEDIDOS.getOrDefault(propietario, Collections.emptyMap())
-                .getOrDefault(solicitante, "").equals(CLAVE_LISTAR);
-
-        if (tienePermiso) {
+        if (tienePermisoPermanente(propietario, solicitante, CLAVE_LISTAR)) {
             realizarListado(propietario, escritor);
-            PERMISOS_CONCEDIDOS.get(propietario).remove(solicitante); // Permiso de un solo uso
         } else {
             solicitarPermiso(solicitante, propietario, CLAVE_LISTAR, escritor);
         }
@@ -391,13 +385,11 @@ public class Servidor2025 {
             escritor.println("Error: Nombre de archivo no válido.");
             return;
         }
-
         File archivo = new File(DIRECTORIO_RAIZ + File.separator + usuario, nombreArchivo);
         if (archivo.exists()) {
             escritor.println("Error: El archivo ya existe.");
             return;
         }
-
         escritor.println("Escribe el contenido. Termina con 'FIN_CONTENIDO' en una nueva línea.");
         try (BufferedWriter escritorArchivo = new BufferedWriter(new FileWriter(archivo))) {
             String linea;
@@ -417,26 +409,22 @@ public class Servidor2025 {
 
         if (propietario == null || nombreArchivo == null || !verificarUsuarioExiste(propietario)) {
             escritor.println("Error: Datos inválidos.");
+            escritor.println("FIN_COMANDO");
             return;
         }
-
         File archivo = new File(DIRECTORIO_RAIZ + File.separator + propietario, nombreArchivo);
         if (!archivo.exists()) {
             escritor.println("Error: El archivo no existe.");
+            escritor.println("FIN_COMANDO");
             return;
         }
-
-        boolean tienePermiso = PERMISOS_CONCEDIDOS.getOrDefault(propietario, Collections.emptyMap())
-                .getOrDefault(solicitante, "").equals(nombreArchivo);
-
-        if (tienePermiso) {
-            escritor.println("PERMISO_OK"); // Señal para el cliente
+        if (tienePermisoPermanente(propietario, solicitante, nombreArchivo)) {
+            escritor.println("PERMISO_OK");
             escritor.println("Enviando contenido de " + nombreArchivo + "...");
             try (BufferedReader lectorArchivo = new BufferedReader(new FileReader(archivo))) {
                 lectorArchivo.lines().forEach(escritor::println);
             }
             escritor.println("FIN_DESCARGA_ARCHIVO");
-            PERMISOS_CONCEDIDOS.get(propietario).remove(solicitante);
         } else {
             solicitarPermiso(solicitante, propietario, nombreArchivo, escritor);
         }
@@ -452,7 +440,6 @@ public class Servidor2025 {
             escritor.println("Error: Datos de transferencia no válidos.");
             return;
         }
-
         File origen = new File(DIRECTORIO_RAIZ + File.separator + remitente, nombreArchivo);
         File archivoDestino = new File(DIRECTORIO_RAIZ + File.separator + destino, nombreArchivo);
 
@@ -464,7 +451,6 @@ public class Servidor2025 {
             escritor.println("Error: El usuario destino ya tiene un archivo con ese nombre.");
             return;
         }
-
         try (InputStream in = new FileInputStream(origen); OutputStream out = new FileOutputStream(archivoDestino)) {
             in.transferTo(out);
             escritor.println("Archivo transferido a " + destino + " exitosamente.");
@@ -508,9 +494,6 @@ public class Servidor2025 {
                 String accion = CLAVE_LISTAR.equals(clave) ? "listar sus archivos" : "descargar el archivo " + clave;
 
                 escritor.println("El usuario " + propietario + " " + decision.toLowerCase() + " tu solicitud para " + accion);
-                if ("ACEPTADA".equals(decision)) {
-                    PERMISOS_CONCEDIDOS.computeIfAbsent(propietario, k -> new ConcurrentHashMap<>()).put(usuario, clave);
-                }
             }
             escritor.println("---------------------------------");
         }
@@ -547,9 +530,9 @@ public class Servidor2025 {
             String opcion = lector.readLine();
 
             if ("1".equals(opcion)) {
-                PERMISOS_CONCEDIDOS.computeIfAbsent(propietario, k -> new ConcurrentHashMap<>()).put(solicitante, clave);
+                otorgarPermisoPermanente(propietario, solicitante, clave);
                 almacenarDecision(solicitante, propietario, clave, "ACEPTADA");
-                escritor.println("Permiso concedido.");
+                escritor.println("Permiso concedido permanentemente.");
             } else if ("2".equals(opcion)) {
                 almacenarDecision(solicitante, propietario, clave, "DENEGADA");
                 escritor.println("Permiso denegado.");
@@ -669,6 +652,28 @@ public class Servidor2025 {
         String nuevaDecision = sol + ":" + prop + ":" + clave + ":" + dec;
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_DECISIONES, true))) {
             writer.write(nuevaDecision);
+            writer.newLine();
+        }
+    }
+
+    private static synchronized boolean tienePermisoPermanente(String propietario, String solicitante, String clave) throws IOException {
+        File archivo = new File(ARCHIVO_PERMISOS);
+        if (!archivo.exists()) {
+            return false;
+        }
+        String permisoBuscado = propietario + ":" + solicitante + ":" + clave;
+        try (BufferedReader reader = new BufferedReader(new FileReader(archivo))) {
+            return reader.lines().anyMatch(linea -> linea.equals(permisoBuscado));
+        }
+    }
+
+    private static synchronized void otorgarPermisoPermanente(String propietario, String solicitante, String clave) throws IOException {
+        if (tienePermisoPermanente(propietario, solicitante, clave)) {
+            return;
+        }
+        String nuevoPermiso = propietario + ":" + solicitante + ":" + clave;
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(ARCHIVO_PERMISOS, true))) {
+            writer.write(nuevoPermiso);
             writer.newLine();
         }
     }

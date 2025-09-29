@@ -1,0 +1,6 @@
+usuario2:usuario1:arc3.txt
+usuario2:usuario1:arc1.txt
+usuario2:usuario1:arc2.txt
+usuario2:usuario1:LISTAR_ARCHIVOS
+usuario2:usuario1:pruebita.txt
+usuario2:usuario1:pruebita2.txt
