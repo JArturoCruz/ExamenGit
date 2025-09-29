@@ -10,7 +10,6 @@ public class Cliente2025 {
 
     public static void main(String[] args) {
         new File(DIRECTORIO_CLIENTE).mkdirs();
-
         try (
                 Socket socket = new Socket(HOST, PUERTO);
                 PrintWriter escritor = new PrintWriter(socket.getOutputStream(), true);
@@ -32,9 +31,9 @@ public class Cliente2025 {
         }
     }
 
+    // Maneja el proceso de login o registro del usuario
     private static boolean manejarAutenticacion(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
-        System.out.println("Servidor: " + lectorServidor.readLine()); // Lee bienvenida
-
+        System.out.println("Servidor: " + lectorServidor.readLine());
         String opcionLogin;
         while (true) {
             System.out.print("Elige una opción: ");
@@ -65,11 +64,13 @@ public class Cliente2025 {
 
         if (respuestaAuth.contains("exitosa")) {
             usuarioAutenticado = usuario;
-            new File(DIRECTORIO_CLIENTE, usuarioAutenticado).mkdirs();
+            new File(DIRECTORIO_CLIENTE, usuarioAutenticado).mkdirs(); // Crea carpeta para el usuario
             return true;
         }
         return false;
     }
+
+    // Procesa mensajes iniciales o notificaciones que envía el servidor antes del menú principal
     private static void manejarNotificacionesIniciales(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
         String linea;
         while ((linea = lectorServidor.readLine()) != null) {
@@ -86,6 +87,7 @@ public class Cliente2025 {
         }
     }
 
+    // Gestiona el menú principal con todas las opciones del cliente
     private static void manejarMenuPrincipal(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
         String opcionMenu;
         while (true) {
@@ -114,6 +116,7 @@ public class Cliente2025 {
         }
     }
 
+    // Permite jugar el juego de adivina el numero con el servidor
     private static void manejarJuego(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
         System.out.println("Servidor: " + lectorServidor.readLine());
         while (true) {
@@ -127,6 +130,7 @@ public class Cliente2025 {
         }
     }
 
+    // Maneja el envío de mensajes a otros usuarios
     private static void manejarEnvioMensaje(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
         System.out.println("Servidor: " + lectorServidor.readLine());
         String destinatario = teclado.readLine();
@@ -145,8 +149,9 @@ public class Cliente2025 {
         }
     }
 
+    // Permite leer mensajes recibidos o enviados con paginación
     private static void manejarLecturaMensajes(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
-        System.out.println("Servidor: " + lectorServidor.readLine()); // Muestra: Deseas ver [1] Todos...
+        System.out.println("Servidor: " + lectorServidor.readLine());
         String eleccionLectura;
         while (true) {
             System.out.print("Elige una opción para leer mensajes: ");
@@ -163,7 +168,7 @@ public class Cliente2025 {
             System.out.println("Servidor: " + respuesta);
             escritor.println(teclado.readLine());
         } else {
-            System.out.println(respuesta); // Muestra la primera línea de mensajes o "No tienes mensajes"
+            System.out.println(respuesta);
         }
 
         while (true) {
@@ -173,7 +178,6 @@ public class Cliente2025 {
                 lectorServidor.readLine();
                 break;
             }
-
             if (linea.equals("FIN_PAGINA")) {
                 System.out.print("Elige una opción ([N] Siguiente, [A] Anterior, [V] Volver): ");
                 String eleccionPaginado = teclado.readLine();
@@ -187,8 +191,9 @@ public class Cliente2025 {
         }
     }
 
+    // Maneja la eliminación de mensajes recibidos o enviados
     private static void manejarEliminacionMensajes(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
-        System.out.println("Servidor: " + lectorServidor.readLine()); // Pide tipo: [1] Recibidos | [2] Enviados
+        System.out.println("Servidor: " + lectorServidor.readLine());
         String tipoMensajes;
         while (true) {
             System.out.print("Elige el tipo de mensajes a eliminar: ");
@@ -213,6 +218,7 @@ public class Cliente2025 {
         System.out.println("Servidor: " + lectorServidor.readLine());
     }
 
+    // Lista usuarios registrados
     private static void manejarVerUsuarios(BufferedReader lectorServidor) throws IOException {
         String linea;
         while (!(linea = lectorServidor.readLine()).equals("FIN_COMANDO")) {
@@ -220,6 +226,7 @@ public class Cliente2025 {
         }
     }
 
+    // Maneja el bloqueo o desbloqueo de usuarios
     private static void manejarBloqueo(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
         System.out.println("Servidor: " + lectorServidor.readLine());
         escritor.println(teclado.readLine());
@@ -234,6 +241,7 @@ public class Cliente2025 {
         }
     }
 
+    // Maneja el submenú de archivos (listar, crear, descargar, transferir)
     private static void manejarMenuArchivos(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
         System.out.println("Servidor: " + lectorServidor.readLine());
         System.out.print("Opción de archivos >> ");
@@ -241,18 +249,18 @@ public class Cliente2025 {
         escritor.println(opcionArchivos);
 
         switch(opcionArchivos) {
-            case "1": // Listar
+            case "1": // Listar archivos
                 System.out.println("Servidor: " + lectorServidor.readLine());
                 escritor.println(teclado.readLine());
                 leerHastaFinComando(lectorServidor);
                 break;
-            case "2": // Crear
+            case "2": // Crear archivo
                 manejarCreacionArchivo(lectorServidor, teclado, escritor);
                 break;
-            case "3": // Descargar
+            case "3": // Descargar archivo
                 manejarDescargaArchivo(lectorServidor, teclado, escritor);
                 break;
-            case "4": // Transferir
+            case "4": // Transferir archivo
                 System.out.println("Servidor: " + lectorServidor.readLine());
                 escritor.println(teclado.readLine());
                 System.out.println("Servidor: " + lectorServidor.readLine());
@@ -265,6 +273,7 @@ public class Cliente2025 {
         }
     }
 
+    // Maneja la creación de un archivo en el servidor
     private static void manejarCreacionArchivo(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
         System.out.println("Servidor: " + lectorServidor.readLine());
         escritor.println(teclado.readLine());
@@ -283,6 +292,7 @@ public class Cliente2025 {
         }
     }
 
+    // Maneja la descarga de un archivo desde el servidor
     private static void manejarDescargaArchivo(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
         System.out.println("Servidor: " + lectorServidor.readLine());
         escritor.println(teclado.readLine());
@@ -309,6 +319,7 @@ public class Cliente2025 {
         }
     }
 
+    // Lee hasta que el servidor envíe "FIN_COMANDO"
     private static void leerHastaFinComando(BufferedReader lectorServidor) throws IOException {
         String linea;
         while (!(linea = lectorServidor.readLine()).equals("FIN_COMANDO")) {
