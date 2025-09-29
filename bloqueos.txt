@@ -1,3 +1,3 @@
 Arturo:ArturoPop
 usuario1:Arturo1989
-usuario2:Arturo
+usuario2:Arturo2,Arturo,ArturoPop

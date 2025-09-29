@@ -3,7 +3,6 @@ import java.net.Socket;
 
 public class Cliente2025 {
 
-
     private static final String HOST = "localhost";
     private static final int PUERTO = 8081;
     private static final String DIRECTORIO_CLIENTE = "cliente_archivos";
@@ -19,17 +18,11 @@ public class Cliente2025 {
                 BufferedReader teclado = new BufferedReader(new InputStreamReader(System.in))
         ) {
             System.out.println("Conectado al servidor en " + HOST + ":" + PUERTO);
-
-            // 1. Proceso de Autenticación
             if (!manejarAutenticacion(lectorServidor, teclado, escritor)) {
                 System.out.println("No se pudo iniciar sesión. Adiós.");
                 return;
             }
-
-            // 2. Manejo de notificaciones iniciales del servidor
             manejarNotificacionesIniciales(lectorServidor, teclado, escritor);
-
-            // 3. Bucle del menú principal
             manejarMenuPrincipal(lectorServidor, teclado, escritor);
 
         } catch (IOException e) {
@@ -71,13 +64,11 @@ public class Cliente2025 {
     private static void manejarNotificacionesIniciales(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
         String linea;
         while ((linea = lectorServidor.readLine()) != null) {
-            // Si la línea contiene el inicio del menú, terminamos de leer notificaciones.
             if (linea.startsWith("Menú:")) {
                 System.out.println("\n" + linea); // Imprime el menú
                 break;
             }
             System.out.println(linea);
-            // Si el servidor nos pide una decisión sobre una solicitud pendiente.
             if (linea.contains("¿Aceptar?")) {
                 System.out.print("Tu decisión: ");
                 String decision = teclado.readLine();
@@ -107,11 +98,9 @@ public class Cliente2025 {
                 case "7": manejarBloqueo(lectorServidor, teclado, escritor); break;
                 case "8": manejarMenuArchivos(lectorServidor, teclado, escritor); break;
                 default:
-                    // El servidor enviará un mensaje de "opción no válida"
                     System.out.println("Servidor: " + lectorServidor.readLine());
                     break;
             }
-            // Lee el siguiente menú que envía el servidor al finalizar una acción
             System.out.println("\nServidor: " + lectorServidor.readLine());
         }
     }
@@ -134,21 +123,17 @@ public class Cliente2025 {
         String destinatario = teclado.readLine();
         escritor.println(destinatario); // Envía destinatario
 
-        // Si el usuario decide volver, el servidor no enviará nada más.
         if (destinatario != null && destinatario.equalsIgnoreCase("V")) {
             return;
         }
 
         String respuestaServidor = lectorServidor.readLine();
         System.out.println("Servidor: " + respuestaServidor);
-
-        // Si la respuesta NO es un error, procedemos a pedir y enviar el mensaje.
         if (!respuestaServidor.startsWith("Error:")) {
             System.out.print("Mensaje: ");
             escritor.println(teclado.readLine()); // Envía el mensaje
             System.out.println("Servidor: " + lectorServidor.readLine()); // Lee la confirmación final
         }
-        // Si fue un error, la función termina y el bucle principal leerá el siguiente menú.
     }
 
     private static void manejarLecturaMensajes(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
@@ -163,7 +148,6 @@ public class Cliente2025 {
             System.out.println(respuesta); // Muestra la primera línea de mensajes o "No tienes mensajes"
         }
 
-        // Bucle para leer todas las páginas
         while (true) {
             String linea = lectorServidor.readLine();
             if (linea == null || linea.equals("FIN_PAGINA")) {
@@ -183,7 +167,6 @@ public class Cliente2025 {
         System.out.println("Servidor: " + lectorServidor.readLine()); // Pide tipo de mensajes a eliminar
         escritor.println(teclado.readLine()); // Envía opción 1 o 2
 
-        // El servidor enviará la lista de mensajes o un mensaje de que no hay
         String linea;
         while(!(linea = lectorServidor.readLine()).contains("Escribe el número")){
             System.out.println(linea);
@@ -208,9 +191,22 @@ public class Cliente2025 {
 
         String respuesta = lectorServidor.readLine();
         System.out.println("Servidor: " + respuesta);
+
         if (respuesta.contains("¿Desbloquear?") || respuesta.contains("¿Bloquear?")) {
-            escritor.println(teclado.readLine()); // Envía opción 1 o 2
-            System.out.println("Servidor: " + lectorServidor.readLine()); // Lee confirmación
+            String opcion;
+            while (true) {
+                System.out.print("Elige una opción: [1] Sí / [2] No (Cancelar)\n>> ");
+                opcion = teclado.readLine();
+                if ("1".equals(opcion) || "2".equals(opcion)) {
+                    escritor.println(opcion); // Enviar la opción validada al servidor
+                    break; // Salir del bucle de validación
+                } else {
+                    System.out.println("Opción no válida. Por favor, elige [1] o [2].");
+                }
+            }
+            if ("1".equals(opcion)) {
+                System.out.println("Servidor: " + lectorServidor.readLine()); // Lee la confirmación final del servidor
+            }
         }
     }
 
@@ -249,16 +245,18 @@ public class Cliente2025 {
         System.out.println("Servidor: " + lectorServidor.readLine()); // Pide nombre de archivo
         escritor.println(teclado.readLine()); // Envía nombre
 
-        System.out.println("Servidor: " + lectorServidor.readLine()); // Pide contenido
+        String respuestaServidor = lectorServidor.readLine();
+        System.out.println("Servidor: " + respuestaServidor);
 
-        StringBuilder contenido = new StringBuilder();
-        String linea;
-        while (!(linea = teclado.readLine()).equals("FIN_CONTENIDO")) {
-            escritor.println(linea);
+        if (respuestaServidor.startsWith("Escribe el contenido")) {
+            System.out.println("Escribe tu contenido y termina con 'FIN_CONTENIDO' en una nueva línea.");
+            String linea;
+            while (!(linea = teclado.readLine()).equals("FIN_CONTENIDO")) {
+                escritor.println(linea);
+            }
+            escritor.println("FIN_CONTENIDO"); // Envía señal de fin
+            System.out.println("Servidor: " + lectorServidor.readLine()); // Muestra confirmación
         }
-        escritor.println("FIN_CONTENIDO"); // Envía señal de fin
-
-        System.out.println("Servidor: " + lectorServidor.readLine()); // Muestra confirmación
     }
 
     private static void manejarDescargaArchivo(BufferedReader lectorServidor, BufferedReader teclado, PrintWriter escritor) throws IOException {
@@ -295,4 +293,3 @@ public class Cliente2025 {
         }
     }
 }
-
